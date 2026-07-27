@@ -1,0 +1,451 @@
+"use strict";
+
+window.NEXUS_UI = (() => {
+  let state;
+  let actions = {};
+  let bound = false;
+  let diplomacyQuery = "";
+  let stockQuery = "";
+  let stockSector = "all";
+  let clockTimer = null;
+
+  const E = () => window.NEXUS_ECONOMY;
+  const C = () => window.NEXUS_CATALOG;
+  const P = () => window.NEXUS_POLITICS;
+  const fmt0 = n => new Intl.NumberFormat("es-ES", {maximumFractionDigits:0}).format(Number(n)||0);
+  const fmt1 = n => new Intl.NumberFormat("es-ES", {minimumFractionDigits:1,maximumFractionDigits:1}).format(Number(n)||0);
+  const money = n => `${fmt1(n)} mil M€`;
+  const pct = n => `${fmt1(n)}%`;
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  const controlled = () => E().getCountry(state);
+  const selected = () => E().getSelectedCountry ? E().getSelectedCountry(state) : state.countries.find(c=>c.id===state.selectedCountryId)||controlled();
+  const buildingDef = id => C().buildings.find(b=>b.id===id);
+  const unitDef = id => state.unitCatalog.find(u=>u.id===id);
+
+  function initialize(nextState, nextActions) {
+    state = nextState;
+    actions = nextActions || {};
+    bindGlobalControls();
+    if(!clockTimer)clockTimer=setInterval(renderClock,200);
+    renderAll();
+  }
+
+  function bindGlobalControls() {
+    if (bound) return;
+    bound = true;
+    document.addEventListener("click", event => {
+      const nav = event.target.closest("[data-panel]");
+      if (nav) { actions.setPanel?.(nav.dataset.panel); return; }
+      const jump = event.target.closest("[data-panel-jump]");
+      if (jump) { actions.setPanel?.(jump.dataset.panelJump); return; }
+      const layer = event.target.closest("[data-map-layer]");
+      if (layer) { actions.setMapLayer?.(layer.dataset.mapLayer); return; }
+      const speed = event.target.closest("[data-speed]");
+      if (speed) { actions.setSpeed?.(Number(speed.dataset.speed)); return; }
+      const action = event.target.closest("[data-action]");
+      if (action) { handleAction(action.dataset.action, action.dataset); return; }
+    });
+    document.addEventListener("change", event => {
+      if (event.target.id === "countrySelect") actions.selectCountry?.(event.target.value);
+      if (event.target.matches("[data-region-select]")) actions.selectRegion?.(state.selectedCountryId||state.controlledCountryId, event.target.value);
+      if (event.target.id === "stockSectorFilter") { stockSector=event.target.value; renderPanel(); }
+      if (event.target.matches("[data-doctrine]")) actions.setDoctrine?.(event.target.value);
+      if (event.target.matches("[data-setting]")) actions.updateSetting?.(event.target.dataset.setting, event.target.checked);
+    });
+    document.addEventListener("input", event => {
+      const budget = event.target.closest("[data-budget]");
+      if (budget) { actions.updateBudget?.(budget.dataset.budget, Number(budget.value)); budget.parentElement.querySelector("output").textContent = `${budget.value}%`; }
+      const tax = event.target.closest("[data-tax-rate]");
+      if (tax) { actions.updateTaxRate?.(Number(tax.value)); tax.parentElement.querySelector("output").textContent = `${tax.value}%`; }
+      if (event.target.id === "diplomacySearch") { diplomacyQuery=event.target.value.trim().toLowerCase(); renderPanel(); }
+      if (event.target.id === "stockSearch") { stockQuery=event.target.value.trim().toLowerCase(); renderPanel(); }
+    });
+    document.getElementById("playPauseBtn")?.addEventListener("click", () => actions.toggleRun?.());
+    document.getElementById("stepBtn")?.addEventListener("click", () => actions.stepDay?.());
+    document.getElementById("saveBtn")?.addEventListener("click", () => actions.save?.());
+    document.getElementById("loadBtn")?.addEventListener("click", () => actions.load?.());
+    document.getElementById("exportBtn")?.addEventListener("click", () => actions.exportSave?.());
+    document.getElementById("menuSettingsBtn")?.addEventListener("click", () => actions.setPanel?.("settings"));
+    document.getElementById("countryDetailsBtn")?.addEventListener("click", openCountryModal);
+    document.getElementById("closeModalBtn")?.addEventListener("click", closeModal);
+    document.getElementById("modalBackdrop")?.addEventListener("click", e => { if (e.target.id === "modalBackdrop") closeModal(); });
+    document.addEventListener("keydown", event => {
+      if (["INPUT","TEXTAREA","SELECT"].includes(event.target.tagName)) return;
+      if (event.code === "Space") { event.preventDefault(); actions.toggleRun?.(); }
+      if (["1","2","4"].includes(event.key)) actions.setSpeed?.(Number(event.key));
+      if (event.key.toLowerCase() === "s" && (event.ctrlKey || event.metaKey)) { event.preventDefault(); actions.save?.(); }
+    });
+  }
+
+  function handleAction(type, d) {
+    const handlers = {
+      selectRegion: () => actions.selectRegion?.(d.countryId || state.selectedCountryId || state.controlledCountryId, d.regionId),
+      adjustBudget: () => actions.adjustBudget?.(d.budget, Number(d.delta || 0)),
+      build: () => actions.buildInRegion?.(d.buildingId),
+      upgradeBuilding: () => actions.upgradeBuilding?.(d.buildingId),
+      expandSlots: () => actions.expandRegionSlots?.(),
+      setBatch: () => actions.setUnitBatch?.(Number(d.value)),
+      queueUnit: () => actions.queueUnit?.(d.unitId, Number(d.quantity || state.unitBatch || 1)),
+      deployUnit: () => { const select=document.getElementById(`deploy-${d.unitId}`),parts=(select?.value||`${state.controlledCountryId}|${state.selectedRegionId}`).split("|"); actions.deployUnit?.(d.unitId,parts[1],parts[0]); },
+      moveUnit: () => { const select=document.getElementById(`deploy-${d.unitId}`),parts=(select?.value||`${state.controlledCountryId}|${state.selectedRegionId}`).split("|"); actions.moveUnit?.(d.unitId,parts[1],parts[0]); },
+      attackRegion: () => { const select=document.getElementById(`attack-${d.unitId}`),parts=(select?.value||"").split("|"); if(parts.length===2)actions.attackRegion?.(d.unitId,parts[0],parts[1]); },
+      attackUnit: () => { const select=document.getElementById(`attackUnit-${d.unitId}`),parts=(select?.value||"").split("|"); if(parts.length===2)actions.attackUnit?.(d.unitId,parts[0],parts[1]); },
+      attackCountry: () => { const select=document.getElementById(`attackCountry-${d.unitId}`); if(select?.value)actions.attackCountry?.(d.unitId,select.value); },
+      splitUnit: () => { const qty=document.getElementById(`splitQty-${d.unitId}`),target=document.getElementById(`splitRegion-${d.unitId}`); actions.splitUnit?.(d.unitId,Number(qty?.value||0),target?.value); },
+      startProject: () => actions.startProject?.(d.projectId),
+      buyShares: () => actions.buyShares?.(d.companyId, Number(d.pct || 5)),
+      sellShares: () => actions.sellShares?.(d.companyId, Number(d.pct || 5)),
+      takeover: () => actions.takeover?.(d.companyId),
+      diplomacy: () => actions.diplomacy?.(d.countryId, d.kind),
+      operation: () => actions.operation?.(d.countryId, d.operationId),
+      war: () => actions.war?.(d.countryId, d.kind),
+      nuclear: () => actions.nuclearAlert?.(Number(d.delta || 0)),
+      research: () => actions.startResearch?.(d.techId),
+      policy: () => actions.enactPolicy?.(d.policyId),
+      doctrine: () => actions.setDoctrine?.(d.value),
+      takeControl: () => actions.takeControl?.(d.countryId),
+      changeRegime: () => actions.changeRegime?.(d.regimeId),
+      appointParty: () => actions.appointParty?.(d.partyId),
+      callElection: () => actions.callElection?.(),
+      coalitionAdd: () => actions.negotiateCoalition?.(d.partyId),
+      coalitionRemove: () => actions.removeCoalitionParty?.(d.partyId),
+      companyPolicy: () => { const select=document.getElementById(`companyPolicy-${d.companyId}`); if(select?.value)actions.setCompanyPolicy?.(d.companyId,select.value); },
+      nationalDecision: () => actions.enactNationalDecision?.(d.decisionId),
+      openWarRoom: () => openWarModal(d.warId),
+      demandSurrender: () => actions.demandSurrender?.(d.warId),
+      annexOccupied: () => actions.annexOccupiedRegions?.(d.warId),
+      annexCountry: () => actions.annexCountry?.(d.warId),
+      signPeace: () => actions.signPeace?.(d.warId),
+      resolveDecision: () => actions.resolveDecision?.(d.decisionId, d.choiceId),
+      repair: () => actions.repair?.(),
+      import: openImportModal,
+      reset: () => actions.reset?.(),
+      contextTab: () => { state.contextTab=d.value; renderContext(); }
+    };
+    handlers[type]?.();
+  }
+
+  function renderAll() {
+    if (!state) return;
+    renderTopBar();
+    renderNavigation();
+    renderCountrySelector();
+    renderInspector();
+    renderNationalSystems();
+    renderResourceSummary();
+    renderPanel();
+    renderContext();
+    renderMiniEvents();
+    renderMarketTicker();
+    renderMapRegionList();
+    renderSimulationStatus();
+    window.NEXUS_MAP_ENGINE?.render();
+    const modal=document.getElementById("modalContent"),backdrop=document.getElementById("modalBackdrop");
+    if(modal?.dataset?.warRoomId && backdrop && !backdrop.hidden) renderWarRoomIntoModal(modal.dataset.warRoomId);
+  }
+
+  function renderTopBar() {
+    const c = controlled();
+    set("currentDate", new Date(`${state.date}T12:00:00Z`).toLocaleDateString("es-ES", {weekday:"short",day:"2-digit",month:"short",year:"numeric",timeZone:"UTC"}));
+    set("selectedCountryLabel", `Control: ${c.flag} ${c.name}`);
+    set("topTreasury", money(c.economy.treasury)); set("topGDP", money(c.economy.gdp)); set("topPopulation", `${fmt1(c.economy.population)} M`);
+    set("topGrowth", pct(c.economy.growth)); set("topStability", fmt1(c.systems.stability)); set("topEnergy", fmt1(c.systems.energy)); set("topTech", fmt1(c.systems.technology)); set("topMilitary", fmt1(c.systems.military)); set("topGovernment", c.government.regime);
+    const play=document.getElementById("playPauseBtn"); if(play)play.textContent=state.running?"⏸":"▶";
+    document.querySelectorAll("[data-speed]").forEach(b=>b.classList.toggle("active",Number(b.dataset.speed)===state.speed));
+    renderClock();renderTopResources();
+  }
+
+  function clockFraction(){
+    const sim=state.simulation||{};let fraction=Number(sim.clockFraction)||0;
+    if(state.running&&sim.clockAnchor)fraction+=(Date.now()-sim.clockAnchor)/(10000/Math.max(1,state.speed||1));
+    return clamp(fraction,0,.999999);
+  }
+  function renderClock(){
+    if(!state)return;const total=Math.floor(clockFraction()*86400),h=Math.floor(total/3600),m=Math.floor(total%3600/60),sec=total%60;
+    set("currentTime",`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`);
+  }
+  function renderTopResources(){
+    const box=document.getElementById("topResourceStrip");if(!box)return;const c=controlled(),balances=c.resourceBalance||{};
+    box.innerHTML=(state.resourceDefinitions||E().resourceDefinitions||[]).map(def=>{const r=balances[def.id]||{production:0,consumption:0,balance:0,unit:def.unit};return `<div class="top-resource ${r.balance>=0?"surplus":"deficit"}" title="${esc(def.name)}: producción ${fmt1(r.production)} ${esc(r.unit)}, consumo ${fmt1(r.consumption)} ${esc(r.unit)}"><span>${def.icon}</span><div><b>${esc(def.name)}</b><small>${fmt1(r.production)} / ${fmt1(r.consumption)} ${esc(r.unit)}</small></div><strong>${r.balance>=0?"+":""}${fmt1(r.balance)}</strong></div>`}).join("");
+  }
+
+  function renderNavigation() {
+    document.querySelectorAll("[data-panel]").forEach(b=>b.classList.toggle("active",b.dataset.panel===state.activePanel));
+    document.querySelectorAll("[data-map-layer]").forEach(b=>b.classList.toggle("active",b.dataset.mapLayer===state.mapLayer));
+  }
+
+  function renderCountrySelector() {
+    const select=document.getElementById("countrySelect"); if(!select)return;
+    const sorted=state.countries.filter(c=>c.sovereign!==false).sort((a,b)=>a.name.localeCompare(b.name,"es"));
+    select.innerHTML=sorted.map(c=>`<option value="${c.id}" ${c.id===state.selectedCountryId?"selected":""}>${c.flag} ${esc(c.name)}</option>`).join("");
+  }
+
+  function renderInspector() {
+    const c=selected(), player=controlled(), box=document.getElementById("countryInspector"); if(!box)return;
+    const rank=[...state.countries].sort((a,b)=>b.economy.gdp-a.economy.gdp).findIndex(x=>x.id===c.id)+1;
+    const ruling=c.politics?.parties?.find(p=>p.id===c.politics.rulingPartyId);
+    box.innerHTML=`<div class="country-hero"><div class="country-flag">${c.flag}</div><div><h2>${esc(c.name)}</h2><p>${esc(c.government.regime)}</p></div></div>
+      <div class="control-badge ${c.id===player.id?"owned":"inspect"}">${c.id===player.id?"PAÍS CONTROLADO":"SOLO INSPECCIÓN"}</div>
+      <div class="info-list">${info("Gobierno",ruling?.name||c.government.ideology)}${info("PIB mundial",`#${rank}`)}${info("PIB per cápita",`${fmt0(c.economy.gdp*1000/Math.max(.1,c.economy.population))} €`)}${info("Deuda",pct(c.economy.debtRatio))}${info("Inflación",pct(c.economy.inflation))}${info("Desempleo",pct(c.economy.unemployment))}${info("Preparación",pct(c.militaryReadiness))}</div>
+      ${c.id!==player.id?`<button class="primary-btn full" data-action="takeControl" data-country-id="${c.id}">Tomar control de ${esc(c.name)}</button>`:""}`;
+  }
+
+  function renderNationalSystems() {
+    const c=controlled(),box=document.getElementById("nationalSystems");if(!box)return;
+    box.innerHTML=[["Industria",c.systems.industry],["Tecnología",c.systems.technology],["Logística",c.systems.logistics],["Energía",c.systems.energy],["Alimentos",c.systems.food],["Militar",c.systems.military],["Inteligencia",c.systems.intelligence],["Aprobación",c.systems.approval]].map(([l,v])=>meterLine(l,v)).join("");
+  }
+
+  function renderResourceSummary() {
+    const c=controlled(),m=c.economicModel||{},box=document.getElementById("resourceSummary");if(!box)return;
+    box.innerHTML=resourceLine("⚡","Oferta / demanda",`${fmt1(m.energySupply)} / ${fmt1(m.energyDemand)}`,m.energySupply>=m.energyDemand)+resourceLine("🏭","Uso industrial",pct(m.industrialUtilization||0),(m.industrialUtilization||0)>60)+resourceLine("🚢","Balanza comercial",money(c.economy.tradeBalance),c.economy.tradeBalance>=0)+resourceLine("⛽","Combustible",pct(c.strategicStockpile.fuel),c.strategicStockpile.fuel>50)+resourceLine("💥","Munición",pct(c.strategicStockpile.munitions),c.strategicStockpile.munitions>50);
+  }
+
+  function renderPanel() {
+    const box=document.getElementById("mainPanel");if(!box)return;
+    const renderers={overview:renderOverview,economy:renderEconomy,regions:renderRegions,industry:renderIndustry,stock:renderStock,politics:renderPolitics,technology:renderTechnology,military:renderMilitary,diplomacy:renderDiplomacy,intelligence:renderIntelligence,objectives:renderObjectives,events:renderEvents,settings:renderSettings};
+    box.innerHTML=(renderers[state.activePanel]||renderOverview)();
+  }
+
+  function renderOverview() {
+    const c=controlled(),s=selected(),budget=safeBudget(c),wars=state.wars.filter(w=>!w.ended);
+    return `${heading("Centro de mando nacional",`${c.flag} ${c.name} · un día de juego cada 10 segundos a x1`,`<button data-panel-jump="economy">Abrir economía</button><button data-panel-jump="military">Abrir mando militar</button>`)}
+      ${decisionCenter(c)}
+      <div class="kpi-grid">${kpi("Crecimiento",pct(c.economy.growth),"Variación anual")}${kpi("Balance mensual",money(budget.monthlyBalance),budget.monthlyBalance>=0?"Superávit":"Déficit",budget.monthlyBalance>=0?"positive":"negative")}${kpi("Capacidad industrial",fmt1(c.economicModel?.capacityScore),`${fmt0(c.economicModel?.facilityJobs)} empleos`)}${kpi("Energía",`${fmt1(c.economicModel?.energySupply)}/${fmt1(c.economicModel?.energyDemand)}`,"Oferta / demanda")}${kpi("Preparación",pct(c.militaryReadiness),`${fmt0(totalUnits(c))} activos`)}${kpi("Guerras",fmt0(wars.length),"Conflictos mundiales")}</div>
+      <div class="dashboard-grid">
+        <section class="card span-2"><div class="card-title"><h3>Evolución del PIB</h3><span>Histórico mensual</span></div>${sparkline(c.history.gdp,"#42b9ff")}<div class="metric-row">PIB <b>${money(c.economy.gdp)}</b> · Deuda <b>${pct(c.economy.debtRatio)}</b> · Rating <b>${esc(c.economy.rating)}</b></div></section>
+        <section class="card"><div class="card-title"><h3>País inspeccionado</h3><span>${s.id===c.id?"Controlado":"Exterior"}</span></div>${info("País",`${s.flag} ${s.name}`)}${info("PIB",money(s.economy.gdp))}${info("Régimen",s.government.regime)}${info("Relación",s.id===c.id?"—":fmt1(c.relations[s.id]??50))}${s.id!==c.id?`<button class="primary-btn full" data-action="takeControl" data-country-id="${s.id}">Cambiar país controlado</button>`:""}</section>
+        <section class="card span-2"><div class="card-title"><h3>Infraestructura productiva</h3><span>Instalaciones únicas y ampliables</span></div>${facilitySummary(c)}</section>
+        <section class="card"><div class="card-title"><h3>Gobierno</h3><span>${fmt1(c.politics.politicalCapital)} capital político</span></div>${info("Régimen",c.government.regime)}${info("Partido",partyName(c))}${info("Legitimidad",pct(c.government.legitimacy))}${info("Elecciones",c.politics.daysToElection<9000?`${fmt0(c.politics.daysToElection)} días`:"No competitivas")}</section>
+        <section class="card span-3"><div class="card-title"><h3>Conflictos activos</h3><span>Resolución diaria</span></div>${wars.length?wars.map(warCompact).join(""):`<div class="empty-state"><span>🕊️</span><p>No hay guerras activas.</p></div>`}</section>
+      </div>`;
+  }
+
+  function decisionCenter(c){
+    const pending=(state.decisions||[]).filter(d=>d.status==="pending"&&d.targetCountryId===c.id);
+    if(!pending.length)return `<section class="card action-center empty"><div class="card-title"><h3>📨 Centro de decisiones</h3><span>Sin asuntos pendientes</span></div><p class="muted">Las propuestas diplomáticas, crisis, anexiones y decisiones de gobierno aparecerán aquí.</p></section>`;
+    return `<section class="card action-center"><div class="card-title"><h3>📨 Centro de decisiones</h3><span>${pending.length} ${pending.length===1?"asunto pendiente":"asuntos pendientes"}</span></div><div class="action-message-grid">${pending.slice(0,8).map(d=>`<article class="action-message ${esc(d.priority||"normal")}"><header><span>${decisionIcon(d.category)}</span><div><b>${esc(d.title)}</b><small>${esc(d.date||state.date)} · ${esc(d.category||"Estado")}</small></div></header><p>${esc(d.text)}</p><div class="decision-options">${(d.options||[]).map(o=>`<button data-action="resolveDecision" data-decision-id="${d.id}" data-choice-id="${esc(o.id)}"><b>${esc(o.label)}</b><small>${esc(o.description||"")}</small></button>`).join("")}</div></article>`).join("")}</div></section>`;
+  }
+  function decisionIcon(category){return({election:"🗳️",annexation:"🗺️",security:"⚔️",trade:"🚢",cabinet:"🏛️"})[category]||"📨"}
+
+  function renderEconomy() {
+    const c=controlled(),d=safeBudget(c),m=c.economicModel||{},labor=c.laborModel||{},productive=c.productiveModel||{};
+    return `${heading("Economía nacional","Fiscalidad, gasto, deuda, capacidad productiva, empleo y comercio")}
+      <div class="kpi-grid">${kpi("Ingresos / mes",money(d.monthlyRevenue),"Tesoro")}${kpi("Gasto / mes",money(d.monthlySpending),"Administración")}${kpi("Balance",money(d.monthlyBalance),d.monthlyBalance>=0?"Superávit":"Déficit",d.monthlyBalance>=0?"positive":"negative")}${kpi("Productividad",fmt1(c.economy.productivity),"Índice")}${kpi("Uso industrial",pct(m.industrialUtilization),"Capacidad utilizada")}${kpi("Dependencia exterior",pct(m.tradeDependency),"Importaciones / PIB")}${kpi("Empleo industrial",fmt0(m.facilityJobs||0),"puestos directos")}${kpi("Nuevos puestos",fmt0(labor.pendingJobs||labor.jobChange||0),"impacto mensual")}</div>
+      <div class="economy-layout">
+        <section class="card span-2"><div class="card-title"><h3>Presupuesto nacional</h3><span>% del PIB</span></div><div class="budget-grid">${Object.entries(c.budgets).map(([k,v])=>budgetSlider(k,v)).join("")}${taxSlider(c.economy.taxRate)}</div></section>
+        <section class="card"><div class="card-title"><h3>Cuenta exterior</h3></div>${info("Exportaciones",money(c.economy.exports))}${info("Importaciones",money(c.economy.imports))}${info("Balanza",money(c.economy.tradeBalance))}${info("Reservas",money(c.economy.reserves))}${info("Tipo de interés",pct(c.economy.interestRate))}</section>
+        <section class="card span-2"><div class="card-title"><h3>Modelo productivo</h3><span>La capacidad depende de instalaciones, energía, empleo y logística</span></div><div class="kpi-grid four">${kpi("Producción",fmt1(m.industrialOutput),"índice")}${kpi("Empleo directo",fmt0(m.facilityJobs),"puestos")}${kpi("Capacidad",fmt1(m.capacityScore),"puntos")}${kpi("Penalización",pct(m.shortagePenalty),"escasez")}</div><div class="sector-bars">${Object.entries(c.sectors).map(([k,v])=>meterLine(sectorName(k),v)).join("")}</div></section>
+        <section class="card"><div class="card-title"><h3>Demografía y mercado laboral</h3><span>Actualización al cierre de cada mes</span></div>${info("Población",`${fmt1(c.economy.population)} M`)}${info("Desempleo",pct(c.economy.unemployment))}${info("Vacantes",fmt0(labor.jobVacancies||0))}${info("Migración neta anual",pct(labor.netMigrationAnnual||0))}${info("Crecimiento natural anual",pct(labor.naturalGrowthAnnual||0))}</section>
+        <section class="card span-2"><div class="card-title"><h3>Transformación del modelo productivo</h3><span>Las ampliaciones industriales reequilibran los sectores</span></div><div class="sector-bars">${Object.entries(productive).filter(([,v])=>Number.isFinite(Number(v))).map(([k,v])=>meterLine(sectorName(k),v)).join("")}</div></section>
+        <section class="card"><div class="card-title"><h3>Coherencia económica</h3></div><ul class="feature-list"><li><span>●</span>Una instalación de cada tipo por territorio.</li><li><span>●</span>Las ampliaciones aumentan nivel, capacidad, producción y empleo.</li><li><span>●</span>Infraestructura, energía y tecnología limitan proyectos.</li><li><span>●</span>Empleo, migración y población se recalculan mensualmente.</li></ul></section>
+      </div>`;
+  }
+
+  function renderRegions() {
+    const c=selected(),player=controlled(),regions=E().getCountryRegions?.(state,c.id)||[];
+    if(!regions.length)return `${heading("Territorios","No hay divisiones estratégicas disponibles")}<div class="empty-state"><span>🗺️</span><p>No existen regiones configuradas para este país.</p></div>`;
+    let region=regions.find(r=>r.id===state.selectedRegionId)||regions[0];state.selectedRegionId=region.id;state.selectedCountryId=c.id;
+    const facilities=E().facilitiesInRegion?.(state,c,region.id)||(c.id==="ESP"?region.buildings:(c.facilities||[]).filter(f=>f.regionId===region.id));
+    const used=facilities.reduce((s,b)=>s+(buildingDef(b.typeId)?.slots||1),0),resources=E().regionResources?.(state,c.id,region.id)||[];
+    const controller=E().getCountry(state,region.controllerId||c.id),owned=(region.controllerId||c.id)===player.id,canBuild=c.id===player.id&&owned;
+    return `${heading(`Territorios · ${c.flag} ${c.name}`,"Selecciona una región, inspecciona sus recursos y gestiona capacidad productiva",`<select data-region-select>${regions.map(r=>`<option value="${r.id}" ${r.id===region.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`)}
+      <div class="region-layout"><div class="region-list">${regions.map(r=>`<button class="region-item ${r.id===region.id?"active":""}" data-action="selectRegion" data-country-id="${c.id}" data-region-id="${r.id}"><b>${esc(r.name)}</b><small>${fmt1(r.population||0)} M · PIB ${money(r.gdp||0)}</small><small>${esc(r.resourceProfile?.primary||r.specialization||"Economía diversificada")} · Control ${E().getCountry(state,r.controllerId||c.id)?.flag||c.flag}</small></button>`).join("")}</div>
+      <div class="region-detail"><div class="kpi-grid four">${kpi("PIB",money(region.gdp||0),region.capital||"")}${kpi("Infraestructura",fmt1(region.infra||0),"capacidad")}${kpi("Industria",fmt1(region.industry||0),"índice")}${kpi("Energía",fmt1(region.energy||0),"índice")}${kpi("Slots",`${used}/${region.capacitySlots||0}`,"ocupados")}${kpi("Control",`${controller?.flag||"🏳️"} ${controller?.name||c.name}`,owned?"Propio":"Ocupado")}${kpi("Estabilidad",pct(region.stability||0),"social")}${kpi("Defensa",fmt1(region.defense||45),"territorial")}</div>
+      <section class="card"><div class="card-title"><h3>Recursos y producción de ${esc(region.name)}</h3><span>Determinan el valor económico y estratégico de la región</span></div><div class="region-resource-grid">${resources.map(r=>`<article><span>${r.icon}</span><div><b>${esc(r.name)}</b><small>${fmt1(r.value)} ${esc(r.unit)}</small></div></article>`).join("")||`<p class="muted">Sin producción regional registrada.</p>`}</div><div class="regional-specialization"><b>Especialización:</b> ${esc(region.resourceProfile?.primary||region.specialization||"Mixta")} · ${esc(region.resourceProfile?.secondary||"Servicios")}</div></section>
+      <section class="card"><div class="card-title"><h3>Capacidad territorial</h3><span>Amplía suelo industrial sin multiplicar instalaciones absurdamente</span></div><div class="slot-expansion"><div><b>${used}/${region.capacitySlots||0} slots usados</b><p>Cada ampliación añade 2 slots y una mejora menor de infraestructura.</p></div><button data-action="expandSlots" ${canBuild?"":"disabled"}>Ampliar +2 slots</button></div></section>
+      <section class="card"><div class="card-title"><h3>Instalaciones de ${esc(region.name)}</h3><span>Marcadores visibles al ampliar el mapa</span></div><div class="building-grid">${facilities.length?facilities.map(facilityCard).join(""):`<p class="muted">No hay instalaciones.</p>`}</div></section>
+      <section class="card"><div class="card-title"><h3>Nueva capacidad</h3><span>${C().buildings.length} tipos; una instalación por tipo y región, ampliable por niveles</span></div><div class="building-grid">${canBuild?C().buildings.map(buildCard).join(""):`<p class="muted">Solo puedes construir en regiones del país que controlas. Esta vista permite evaluar recursos y objetivos territoriales.</p>`}</div></section></div></div>`;
+  }
+
+  function renderNationalTerritory(c) {
+    const used=c.facilities.reduce((s,b)=>s+(buildingDef(b.typeId)?.slots||1),0);
+    return `${heading(`Territorio nacional · ${c.flag} ${c.name}`,"Para países no españoles la capacidad se gestiona a escala nacional")}
+      <div class="kpi-grid four">${kpi("Instalaciones",fmt0(c.facilities.length),"localizadas")}${kpi("Slots usados",fmt0(used),"nacionales")}${kpi("Logística",fmt1(c.systems.logistics),"requisito")}${kpi("Energía",fmt1(c.systems.energy),"requisito")}</div>
+      <section class="card"><div class="card-title"><h3>Capacidad existente</h3><span>Visible al ampliar el mapa</span></div><div class="building-grid">${c.facilities.length?c.facilities.map(facilityCard).join(""):`<div class="empty-state"><span>🏗️</span><p>No hay instalaciones registradas.</p></div>`}</div></section>
+      <section class="card"><div class="card-title"><h3>Planificación nacional</h3><span>Un proyecto único por tipo</span></div><div class="building-grid">${C().buildings.map(buildCard).join("")}</div></section>`;
+  }
+
+  function renderIndustry() {
+    const c=controlled(),regions=E().getCountryRegions?.(state,c.id)||[],regionNames=new Map(regions.map(r=>[r.id,r.name])),facilities=E().facilitiesForCountry?.(state,c.id)||c.facilities.map(b=>({...b,place:regionNames.get(b.regionId)||c.name}));
+    return `${heading("Industria, energía e infraestructuras","Capacidad física, empresas y proyectos en cola")}
+      <div class="kpi-grid four">${kpi("Instalaciones",fmt0(facilities.length),"activas")}${kpi("Empleo directo",fmt0(c.economicModel.facilityJobs),"personas")}${kpi("Producción",fmt1(c.economicModel.industrialOutput),"índice")}${kpi("Utilización",pct(c.economicModel.industrialUtilization),"capacidad")}</div>
+      <section class="card"><div class="card-title"><h3>Mapa de activos productivos</h3><span>Haz zoom para ver cada instalación</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Activo</th><th>Localización</th><th>Nivel</th><th>Capacidad</th><th>Empleo</th><th>Energía</th></tr></thead><tbody>${facilities.map(f=>{const d=buildingDef(f.typeId)||{};return `<tr><td>${d.icon||"🏢"} ${esc(d.name||f.typeId)}</td><td>${esc(f.place)}</td><td>${f.level||1}/${d.maxLevel||4}</td><td>${esc(d.capacity||"—")}</td><td>${fmt0((d.jobs||0)*(f.level||1))}</td><td>${(d.energy||0)*(f.level||1)>0?"+":""}${fmt1((d.energy||0)*(f.level||1))}</td></tr>`}).join("")}</tbody></table></div></section>
+      <section class="card"><div class="card-title"><h3>Empresas estratégicas nacionales</h3><span>Mercado de capitales global</span></div><div class="company-grid">${state.companies.filter(x=>x.countryId===c.id).slice(0,8).map(companyCard).join("")||`<p class="muted">No hay empresas cotizadas nacionales en el escenario.</p>`}</div><button class="primary-btn" data-panel-jump="stock">Abrir Bolsa global</button></section>`;
+  }
+
+  function renderStock(){
+    const c=controlled(),indices=state.market?.indices||{},all=[...state.companies].sort((a,b)=>(b.marketCap||0)-(a.marketCap||0));
+    const sectors=[...new Set(all.map(x=>x.sector))].sort((a,b)=>a.localeCompare(b,"es"));
+    const companies=all.filter(x=>(stockSector==="all"||x.sector===stockSector)&&(!stockQuery||`${x.name} ${x.sector} ${E().getCountry(state,x.countryId)?.name||x.countryId}`.toLowerCase().includes(stockQuery))),visibleCompanies=companies.slice(0,60);
+    const portfolio=all.reduce((sum,x)=>sum+(x.marketCap||0)*(E().getHolding?.(state,x.id,c.id)||0)/100,0),controlledCompanies=all.filter(x=>(E().getHolding?.(state,x.id,c.id)||0)>=51).length;
+    return `${heading("Bolsa y participaciones estratégicas","Empresas reales como referencia; precios y estados financieros completamente simulados",`<span class="simulation-badge">DATOS FICTICIOS · NO EN VIVO</span>`)}
+      <div class="kpi-grid four">${kpi("Cartera pública",money(portfolio),"valor simulado")}${kpi("Empresas controladas",fmt0(controlledCompanies),"participación ≥51%")}${kpi("Sentimiento",fmt1(state.market?.sentiment||50),"0–100")}${kpi("Cotizadas",fmt0(all.length),"mercado global")}</div>
+      <section class="card"><div class="card-title"><h3>Índices simulados</h3><span>Actualización diaria</span></div><div class="market-index-grid">${Object.entries(indices).map(([name,x])=>`<article class="market-index"><span>${esc(name)}</span><b>${fmt1(x.value)}</b><strong class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${fmt1(x.change)}%</strong>${sparkline(state.market?.history?.[name]||[x.value],x.change>=0?"#54dda1":"#ff6d7a")}</article>`).join("")}</div></section>
+      <section class="card"><div class="card-title"><h3>Mercado global</h3><span>${companies.length} resultados de ${all.length}</span></div><div class="stock-filters"><input id="stockSearch" value="${esc(stockQuery)}" placeholder="Buscar empresa, país o sector…"><select id="stockSectorFilter"><option value="all">Todos los sectores</option>${sectors.map(x=>`<option value="${esc(x)}" ${x===stockSector?"selected":""}>${esc(x)}</option>`).join("")}</select></div><div class="company-grid stock-grid">${visibleCompanies.map(companyCard).join("")||`<div class="empty-state"><span>📉</span><p>No hay empresas que coincidan con el filtro.</p></div>`}</div>${companies.length>visibleCompanies.length?`<p class="muted center">Mostrando las 60 mayores de ${companies.length}. Usa búsqueda o sector para acceder al resto.</p>`:""}</section>`;
+  }
+
+  function renderPolitics() {
+    const c=controlled(),reg=P().getRegime(c.politics.regimeId),ruling=c.politics.parties.find(p=>p.id===c.politics.rulingPartyId),coalition=E().coalitionInfo?.(state,c.id)||{support:0,axis:0,members:[]};
+    const coalitionSeats=(c.politics.coalitionSeats??Math.round(coalition.support*3.5)),majority=coalitionSeats>=176;
+    const candidates=[...c.politics.parties].filter(p=>!c.politics.coalition.includes(p.id)).sort((a,b)=>Math.abs((a.axis||0)-(c.politics.coalitionAxis||0))-Math.abs((b.axis||0)-(c.politics.coalitionAxis||0)));
+    const controlledCompanies=E().controlledCompanies?.(state,c.id)||[],policies=E().companyPolicies||[],decisions=E().nationalDecisionDefinitions||[];
+    return `${heading("Sistema político","Régimen, partidos, alianzas parlamentarias, empresas públicas y decisiones de Estado",`<button data-action="callElection">Convocar elecciones</button>`)}
+      <div class="kpi-grid four">${kpi("Régimen",reg.name,`Pluralismo ${reg.pluralism}`)}${kpi("Gobierno",ruling?.name||"—",ruling?.ideology||"")}${kpi("Coalición",`${coalitionSeats}/350`,majority?"Mayoría absoluta":"Gobierno minoritario",majority?"positive":"warning")}${kpi("Capital político",fmt1(c.politics.politicalCapital),"negociaciones")}${kpi("Empresas controladas",fmt0(controlledCompanies.length),"participación ≥51%")}${kpi("Ingreso corporativo",money(c.corporateIncome?.lastMonth||0),"último cierre mensual")}</div>
+      <section class="card parliament-card"><div class="card-title"><h3>Distribución del poder político</h3><span>180° = 100% del poder nacional · 90° = 50%</span></div>${parliamentChart(c)}<div class="parliament-summary"><b>Gobierno: ${coalition.members.map(x=>esc(x.name)).join(" + ")||"sin acuerdo"}</b><span>${coalitionSeats} escaños · apoyo ${pct(coalition.support)} · eje ${coalition.axis>0?"+":""}${fmt1(coalition.axis)}</span></div></section>
+      <section class="card coalition-builder"><div class="card-title"><h3>Mesa de coalición</h3><span>Forma mayorías coherentes con compatibilidad ideológica</span></div><div class="coalition-seatbar"><i style="width:${clamp(coalitionSeats/350*100,0,100)}%"></i><b>${coalitionSeats}/350</b><em>Mayoría: 176</em></div><div class="coalition-members">${coalition.members.map(p=>`<article><i style="background:${p.color}"></i><div><b>${esc(p.name)}</b><small>${fmt0(p.seats||0)} escaños · ${esc(p.ideology)}</small></div>${p.id===c.politics.rulingPartyId?`<span>Presidencia</span>`:`<button data-action="coalitionRemove" data-party-id="${p.id}">Romper acuerdo</button>`}</article>`).join("")}</div>${candidates.length?`<h4>Socios potenciales</h4><div class="coalition-candidates">${candidates.map(p=>{const distance=Math.abs((p.axis||0)-(c.politics.coalitionAxis||0)),compat=E().coalitionCompatibility?.(distance)||{label:"—",chance:0,cost:0};return `<article><i style="background:${p.color}"></i><div><b>${esc(p.name)}</b><small>${fmt0(p.seats||0)} escaños · ${esc(compat.label)} · coste ${fmt0(compat.cost||0)} CP</small></div><button data-action="coalitionAdd" data-party-id="${p.id}" ${!compat.chance?"disabled":""}>Negociar</button></article>`}).join("")}</div>`:""}</section>
+      <section class="card"><div class="card-title"><h3>Decisiones nacionales</h3><span>Medidas estructurales con coste, capital político y periodo de reutilización</span></div><div class="decision-grid">${decisions.map(d=>nationalDecisionCard(d,c)).join("")}</div></section>
+      <section class="card corporate-governance"><div class="card-title"><h3>Gobierno de empresas controladas</h3><span>El Estado decide el destino del beneficio atribuible cada mes</span></div>${controlledCompanies.length?`<div class="corporate-grid">${controlledCompanies.map(company=>corporateDecisionCard(company,c,policies)).join("")}</div>`:`<div class="empty-state"><span>🏢</span><p>Adquiere al menos el 51% de una empresa desde Bolsa para dirigir sus beneficios.</p></div>`}</section>
+      <div class="politics-layout"><section class="card"><div class="card-title"><h3>Partidos nacionales</h3><span>${c.politics.realPartyData?"Nombres reales · escenario simulado":"Estructura generada para simulación"}</span></div><div class="party-list">${[...c.politics.parties].sort((a,b)=>(a.axis||0)-(b.axis||0)).map(party=>partyCard(party,c)).join("")}</div></section>
+      <section class="card span-2"><div class="card-title"><h3>Cambiar régimen</h3><span>Coste político y transición de estabilidad</span></div><div class="regime-grid">${P().regimes.map(r=>regimeCard(r,c)).join("")}</div></section></div>`;
+  }
+
+  function renderTechnology() {
+    const c=controlled(),branches=[...new Set(C().technologies.map(t=>t.branch))];
+    return `${heading("Investigación y soberanía tecnológica",`${C().technologies.length} tecnologías en ${branches.length} ramas`)}
+      <div class="kpi-grid four">${kpi("Puntos I+D",fmt0(c.researchPoints),"disponibles")}${kpi("Completadas",fmt0(c.completedTechs.length),"tecnologías")}${kpi("En curso",fmt0(c.techQueue.length),"proyectos")}${kpi("Nivel nacional",fmt1(c.systems.technology),"capacidad")}</div>
+      ${branches.map(branch=>`<section class="card"><div class="card-title"><h3>${esc(branch)}</h3><span>${C().technologies.filter(t=>t.branch===branch).length} tecnologías</span></div><div class="tech-grid">${C().technologies.filter(t=>t.branch===branch).map(t=>techCard(t,c)).join("")}</div></section>`).join("")}`;
+  }
+
+  function renderMilitary() {
+    const c=controlled(),allActive=state.wars.filter(w=>!w.ended),activeWars=allActive.filter(w=>w.attacker===c.id||w.defender===c.id),batch=state.unitBatch||1,regionalBattles=(state.regionBattles||[]).filter(b=>!b.ended&&(b.attackerId===c.id||b.defenderId===c.id));
+    const inventory=E().militaryInventory?.(state,c.id)||[],pending=state.wars.filter(w=>w.ended&&!w.settlement?.resolved&&(w.attacker===c.id||w.defender===c.id)),recent=state.wars.filter(w=>w.ended&&w.settlement?.resolved&&(w.attacker===c.id||w.defender===c.id)).slice(-6).reverse();
+    const engagements=(state.unitEngagements||[]).filter(e=>!e.resolved&&(e.attackerCountryId===c.id||e.defenderCountryId===c.id));
+    return `${heading("Mando de Fuerzas Armadas","Producción, despliegue regional, ataques directos, invasiones por flancos y tratados de guerra")}
+      <div class="kpi-grid four">${kpi("Efectivos y material",fmt0(totalUnits(c)),"inventario total")}${kpi("Grupos desplegados",fmt0(c.units.filter(u=>u.quantity>0).length),"regiones y flancos")}${kpi("Preparación",pct(c.militaryReadiness),"nacional")}${kpi("Guerras propias",fmt0(activeWars.length),`${allActive.length} mundiales`)}${kpi("Enfrentamientos",fmt0(engagements.length),"unidad contra unidad")}</div>
+      <section class="card war-command prominent"><div class="card-title"><h3>⚔️ Sala de guerra</h3><span>Parte operativo, frentes, bajas, logística, superioridad y decisiones de paz</span></div>${activeWars.length?activeWars.map(w=>warCard(w,false)).join(""):`<div class="empty-state"><span>🕊️</span><p>No participas en ninguna guerra. Declárala desde Diplomacia y la sala aparecerá automáticamente.</p></div>`}</section>
+      <section class="card"><div class="card-title"><h3>Operaciones de unidades activas</h3><span>Intercepciones, incursiones y ataques contra países</span></div>${engagements.length?`<div class="engagement-grid">${engagements.map(engagementCard).join("")}</div>`:`<p class="muted">No hay operaciones unidad-a-unidad en curso.</p>`}</section>
+      <section class="card"><div class="card-title"><h3>Inventario militar real</h3><span>Recuento por sistema, grupos, regiones y unidades en movimiento</span></div><div class="military-inventory">${inventory.map(x=>{const d=unitDef(x.typeId);return `<article><img src="${d?.icon||""}" alt=""><div><b>${esc(d?.name||x.typeId)}</b><small>${x.groups} grupos · ${x.regions.length} regiones · preparación ${fmt1(x.readiness)}%</small></div><strong>${fmt0(x.quantity)}</strong><span>${x.moving?`${fmt0(x.moving)} en movimiento`:"desplegadas"}</span></article>`}).join("")||`<p class="muted">No hay unidades operativas.</p>`}</div></section>
+      <section class="card"><div class="card-title"><h3>Multiplicador de producción</h3><span>Pedido actual x${batch}</span></div><div class="batch-controls">${[1,10,100,1000].map(v=>`<button data-action="setBatch" data-value="${v}" class="${v===batch?"active":""}">x${v}</button>`).join("")}</div><div class="unit-catalog">${state.unitCatalog.map(u=>unitCard(u,batch)).join("")}</div></section>
+      <section class="card"><div class="card-title"><h3>Unidades desplegadas por regiones</h3><span>Divide grupos, mueve, ataca unidades concretas o lanza ofensivas contra países</span></div><div class="deployed-grid">${c.units.filter(u=>u.quantity>0).map(deployedUnit).join("")||`<p class="muted">No hay unidades desplegadas.</p>`}</div></section>
+      <section class="card"><div class="card-title"><h3>Batallas regionales</h3><span>El control territorial se resuelve cada día</span></div>${regionalBattles.length?regionalBattles.map(regionBattleCard).join(""):`<div class="empty-state"><span>🗺️</span><p>No hay ofensivas regionales activas.</p></div>`}</section>
+      <section class="card"><div class="card-title"><h3>Cola de producción y construcción</h3><span>Días restantes y destino protegido</span></div>${queueHTML(c.productionQueue)}</section>
+      ${pending.length?`<section class="card settlement-center"><div class="card-title"><h3>Tratados pendientes</h3><span>La guerra ha terminado; decide fronteras y anexiones</span></div>${pending.map(w=>warCard(w,true)).join("")}</section>`:""}
+      ${recent.length?`<section class="card"><div class="card-title"><h3>Historial de conflictos</h3><span>Balances y tratados resueltos</span></div>${recent.map(w=>warCard(w,true)).join("")}</section>`:""}`;
+  }
+
+  function renderDiplomacy() {
+    const c=controlled(),sel=selected();
+    const routes=(state.tradeRoutes||[]).filter(r=>r.active!==false&&r.countries?.includes(c.id));
+    let others=state.countries.filter(x=>x.id!==c.id);
+    if(diplomacyQuery)others=others.filter(x=>`${x.name} ${x.id}`.toLowerCase().includes(diplomacyQuery));
+    others.sort((a,b)=>a.name.localeCompare(b.name,"es"));
+    return `${heading("Diplomacia mundial",`${state.countries.length} entidades soberanas: el directorio muestra todos los países`, `<input id="diplomacySearch" value="${esc(diplomacyQuery)}" placeholder="Buscar país…">`)}
+      <section class="card selected-diplomacy"><div class="country-hero"><div class="country-flag">${sel.flag}</div><div><h2>${esc(sel.name)}</h2><p>${esc(sel.government.regime)} · Relación ${sel.id===c.id?"—":fmt1(c.relations[sel.id]??50)}</p></div></div>${sel.id!==c.id?diplomacyActions(sel,c):`<p class="muted">Este es el país controlado.</p>`}</section>
+      <section class="card"><div class="card-title"><h3>🚢 Corredores comerciales marítimos</h3><span>${routes.reduce((sum,r)=>sum+(r.ships?.length||0),0)} buques operativos</span></div><div class="trade-route-grid">${routes.length?routes.map(r=>tradeRouteCard(r,c)).join(""):`<p class="muted">Firma un acuerdo comercial para activar una ruta y asignar buques de suministro.</p>`}</div></section>
+      <section class="card diplomacy-directory-card"><div class="card-title"><h3>Directorio diplomático completo</h3><span>${others.length} países mostrados</span></div><div class="diplomacy-grid all-countries">${others.map(x=>diplomacyCard(x,c)).join("")}</div></section>`;
+  }
+
+  function renderIntelligence() {
+    const c=controlled(),target=selected().id===c.id?state.countries.find(x=>x.id!==c.id):selected();
+    return `${heading("Inteligencia estratégica","Reconocimiento, influencia, sabotaje y ciberoperaciones")}
+      <div class="intel-layout"><section class="card"><div class="country-hero"><div class="country-flag">${target.flag}</div><div><h2>${esc(target.name)}</h2><p>Objetivo seleccionado en mapa</p></div></div>${systemMeter("Capacidad propia",c.systems.intelligence,"Inteligencia")}${systemMeter("Defensa objetivo",target.systems.intelligence,"Contrainteligencia")}${info("Relación",fmt1(c.relations[target.id]??50))}</section>
+      <section class="card span-2"><div class="card-title"><h3>Operaciones</h3><span>El riesgo depende de ambas capacidades</span></div><div class="building-grid">${C().operations.map(op=>operationCard(op,target)).join("")}</div></section>
+      <section class="card span-3"><div class="card-title"><h3>Informes</h3></div>${Object.keys(c.intelReports).length?`<div class="table-wrap"><table class="data-table"><thead><tr><th>País</th><th>Fecha</th><th>PIB</th><th>Militar</th><th>Tecnología</th></tr></thead><tbody>${Object.entries(c.intelReports).map(([id,r])=>`<tr><td>${esc(E().getCountry(state,id)?.name||id)}</td><td>${r.date}</td><td>${money(r.gdp)}</td><td>${fmt1(r.military)}</td><td>${fmt1(r.technology)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">Aún no hay informes.</p>`}</section></div>`;
+  }
+
+  function renderObjectives() {
+    return `${heading("Objetivos nacionales","Hitos, recompensas y puntuación",`<span class="score-badge">${state.score} pts</span>`)}<div class="objective-grid">${state.objectives.map(o=>`<article class="objective-card ${o.completed?"completed":""}"><h3>${o.icon} ${esc(o.name)}</h3><p>${esc(o.description)}</p><div class="info-row"><span>${o.completed?`Completado ${o.completedDate}`:"En progreso"}</span><b>+${o.reward}</b></div></article>`).join("")}</div>`;
+  }
+
+  function renderEvents() {
+    return `${heading("Cronología mundial","Economía, política, producción y batallas por día")}<div class="kpi-grid four">${kpi("Tensión",pct(state.world.tension),"mundial")}${kpi("Energía",pct(state.world.energyStress),"estrés")}${kpi("Alimentos",pct(state.world.foodStress),"estrés")}${kpi("Guerras",fmt0(state.wars.filter(w=>!w.ended).length),"activas")}</div><div class="event-list">${state.events.slice(0,160).map(eventRow).join("")}</div>`;
+  }
+
+  function renderSettings() {
+    return `${heading("Configuración y partida","Guardado local, importación y preferencias")}
+      <div class="settings-grid"><section class="setting-card"><h3>Simulación</h3>${toggleSetting("autosave","Autoguardado semanal",state.settings.autosave)}${toggleSetting("reducedMotion","Reducir animaciones",state.settings.reducedMotion)}${toggleSetting("denseUI","Interfaz compacta",state.settings.denseUI)}${toggleSetting("showMapLabels","Etiquetas del mapa",state.settings.showMapLabels)}</section>
+      <section class="setting-card"><h3>Tiempo</h3>${info("x1","1 día / 10 s reales")}${info("x2","1 día / 5 s reales")}${info("x4","1 día / 2,5 s reales")}${info("Paso manual","+1 día")}</section>
+      <section class="setting-card"><h3>Partida</h3><div class="action-list"><button data-action="repair">🛠 Reparar estado</button><button data-action="import">📥 Importar guardado</button><button onclick="NEXUS_ACTIONS.exportSave()">📤 Exportar JSON</button><button class="danger-btn" data-action="reset">♻ Reiniciar campaña</button></div></section>
+      <section class="setting-card"><h3>Integridad</h3>${info("Versión",state.version)}${info("Países",state.countries.length)}${info("Tecnologías",C().technologies.length)}${info("Unidades",fmt0(state.countries.reduce((s,c)=>s+totalUnits(c),0)))}</section></div>`;
+  }
+
+  function renderContext() {
+    const box=document.getElementById("contextPanel");if(!box)return;const c=controlled(),s=selected();
+    const tabs=`<div class="context-tabs"><button data-action="contextTab" data-value="actions" class="${state.contextTab==="actions"?"active":""}">Acciones</button><button data-action="contextTab" data-value="queue" class="${state.contextTab==="queue"?"active":""}">Colas</button><button data-action="contextTab" data-value="status" class="${state.contextTab==="status"?"active":""}">Estado</button></div>`;
+    let html=tabs;
+    if(state.contextTab==="queue")html+=queueHTML(c.productionQueue)+queueHTML(c.techQueue);
+    else if(state.contextTab==="status")html+=systemMeter("Tesorería",Math.min(100,c.economy.treasury/3),money(c.economy.treasury))+systemMeter("Legitimidad",c.government.legitimacy,"Gobierno")+systemMeter("Preparación",c.militaryReadiness,"Fuerzas Armadas")+systemMeter("Estabilidad",c.systems.stability,"Nacional");
+    else if(s.id!==c.id)html+=actionCard("🎮","Cambiar país",`Asume el control total de ${s.name}.`,`<button data-action="takeControl" data-country-id="${s.id}">Tomar control</button>`)+actionCard("🤝","Comercio",`Mejora relación y actividad.`,`<button data-action="diplomacy" data-country-id="${s.id}" data-kind="trade">Proponer</button>`)+actionCard("⛔","Embargo",`Reduce relación antes de una guerra.`,`<button data-action="diplomacy" data-country-id="${s.id}" data-kind="embargo">Aplicar</button>`)+actionCard("⚔️","Conflicto",`El combate se resuelve cada día.`,`<button data-action="war" data-country-id="${s.id}" data-kind="${warBetween(c.id,s.id)?"ceasefire":"declare"}">${warBetween(c.id,s.id)?"Alto el fuego":"Declarar guerra"}</button>`);
+    else html+=C().policies.slice(0,6).map(p=>actionCard(p.icon,p.name,p.description,`<button data-action="policy" data-policy-id="${p.id}">${money(p.cost)}</button>`)).join("");
+    box.innerHTML=html;set("contextTitle",s.name);
+  }
+
+  function renderMiniEvents(){const box=document.getElementById("miniEvents");if(!box)return;box.innerHTML=state.events.slice(0,7).map(e=>`<div class="mini-event"><span>${eventIcon(e.type)}</span><p>${esc(e.title)}</p><time>${e.date.slice(5)}</time></div>`).join("")}
+  function renderMarketTicker(){const box=document.getElementById("marketTicker");if(!box)return;const indices=Object.entries(state.market?.indices||{}).slice(0,5);box.innerHTML=indices.map(([name,x])=>`<div class="market-line"><span>📊</span><b>${esc(name)}</b><strong class="${x.change>=0?"positive":"negative"}">${fmt1(x.value)} ${x.change>=0?"▲":"▼"}</strong></div>`).join("")+`<button class="full" data-panel-jump="stock">Abrir Bolsa</button>`}
+  function renderMapRegionList(){
+    const box=document.getElementById("mapRegionList");if(!box)return;const country=selected(),regions=E().getCountryRegions?.(state,country.id)||[],show=state.mapMode==="regions"||state.mapZoom>=4.2||country.id===state.controlledCountryId;
+    box.hidden=!show||!regions.length;if(box.hidden)return;box.innerHTML=`<header><b>Regiones · ${country.flag} ${esc(country.name)}</b><small>Clic para centrar y ver recursos</small></header><div>${regions.map(r=>`<button data-action="selectRegion" data-country-id="${country.id}" data-region-id="${r.id}" class="${r.id===state.selectedRegionId?"active":""}"><span>${esc(r.name)}</span><small>${esc(r.resourceProfile?.primary||r.specialization||"Economía mixta")} · control ${E().getCountry(state,r.controllerId||country.id)?.flag||country.flag}</small></button>`).join("")}</div>`;
+  }
+
+  function renderSimulationStatus(){set("gameStatus",state.running?`Activa · x${state.speed} · 1 día/${fmt1(10/state.speed)} s`:"Simulación pausada");set("scoreStatus",`Puntuación ${state.score}`)}
+
+  function facilitySummary(c){const regions=E().getCountryRegions?.(state,c.id)||[],list=regions.flatMap(r=>(E().facilitiesInRegion?.(state,c,r.id)||[]).map(b=>({...b,place:r.name})));if(!list.length)return `<p class="muted">Sin instalaciones.</p>`;return `<div class="facility-strip">${list.slice(0,20).map(f=>{const d=buildingDef(f.typeId)||{};return `<div title="${esc(f.place)}"><span>${d.icon||"🏢"}</span><b>${esc(d.name||f.typeId)}</b><small>N${f.level||1} · ${esc(f.place)}</small></div>`}).join("")}</div>`}
+  function facilityCard(f){const d=buildingDef(f.typeId)||{};return `<article class="building-card"><header><h3>${d.icon||"🏢"} ${esc(d.name||f.typeId)}</h3><b>N${f.level||1}</b></header><p>${esc(d.capacity||d.description||"")} · ${fmt0((d.jobs||0)*(f.level||1))} empleos</p><footer><button data-action="upgradeBuilding" data-building-id="${f.id}" ${(f.level||1)>=(d.maxLevel||4)?"disabled":""}>Ampliar nivel</button></footer></article>`}
+  function buildCard(d){const c=controlled(),target=E().facilitiesInRegion?.(state,c,state.selectedRegionId)||[],exists=target.some(b=>b.typeId===d.id)||c.productionQueue.some(q=>["facilityV2","facilityV3","building"].includes(q.kind)&&q.buildingId===d.id&&(q.targetRegionId||q.regionId)===state.selectedRegionId);return `<article class="building-card ${exists?"locked":""}"><header><h3>${d.icon} ${esc(d.name)}</h3><b>${money(d.cost)}</b></header><p>${esc(d.capacity||d.description)} · ${d.slots||1} slots · ${fmt0(d.jobs||0)} empleos</p><small>${requirementText(d)}</small><footer><button data-action="build" data-building-id="${d.id}" ${exists?"disabled":""}>${exists?"Existente o en cola":"Construir"}</button></footer></article>`}
+  function requirementText(d){const r=d.requires||{},a=[];if(r.infra)a.push(`Infra ${r.infra}`);if(r.energy)a.push(`Energía ${r.energy}`);if(r.technology)a.push(`Tech ${r.technology}`);if(r.coastal)a.push("Costa");return a.length?`Requisitos: ${a.join(" · ")}`:"Sin requisitos especiales"}
+  function companyCard(c){const owner=E().getCountry(state,c.countryId),held=E().getHolding?.(state,c.id,controlled().id)||0,f=c.financials||{};return `<article class="company-card ${held>=51?"controlled":""}"><header><div><h3>${owner?.flag||"🏳️"} ${esc(c.name)}</h3><p>${esc(c.sector)} · ${esc(owner?.name||c.countryId)}</p></div><b>${money(c.marketCap)}</b></header>${sparkline(c.history,c.dayChange>=0?"#54dda1":"#ff6d7a")}<div class="stock-price-line"><strong>${fmt1(c.price)} €</strong><span class="${c.dayChange>=0?"positive":"negative"}">${c.dayChange>=0?"+":""}${fmt1(c.dayChange)}%</span></div><div class="company-facts"><span>Ingresos <b>${money(f.revenue||0)}</b></span><span>Beneficio <b>${money(f.profit||0)}</b></span><span>PER <b>${fmt1(f.pe||0)}</b></span><span>Dividendo <b>${pct(f.dividend||0)}</b></span></div><div class="kpi-grid three">${kpi("Participación",pct(held),held>=51?"CONTROL":"Cartera")}${kpi("Empleo",fmt0(c.employees),"personas")}${kpi("Margen",pct(f.margin||0),"operativo")}</div><footer><button data-action="buyShares" data-company-id="${c.id}" data-pct="1">Comprar 1%</button><button data-action="buyShares" data-company-id="${c.id}" data-pct="5">Comprar 5%</button><button data-action="sellShares" data-company-id="${c.id}" data-pct="5">Vender 5%</button><button data-action="takeover" data-company-id="${c.id}">OPA</button></footer></article>`}
+  function partyCard(party,c){const ruling=party.id===c.politics.rulingPartyId,inCoalition=c.politics.coalition.includes(party.id),distance=E().coalitionInfo?Math.abs((party.axis||0)-(c.politics.coalitionAxis||0)):0,compat=E().coalitionCompatibility?.(distance)||{label:"—"};return `<article class="party-card ${ruling?"ruling":""} ${inCoalition?"coalition-member":""}"><i style="background:${party.color}"></i><div><h3>${esc(party.name)}</h3><p>${esc(party.ideology)} · eje ${party.axis>0?"+":""}${fmt0(party.axis||0)}</p><small>${inCoalition?"En la coalición":`Compatibilidad ${esc(compat.label)}`}</small></div><b>${pct(party.popularity)}</b>${ruling?`<button disabled>Presidencia</button>`:inCoalition?`<button data-action="coalitionRemove" data-party-id="${party.id}">Salir</button>`:`<button data-action="coalitionAdd" data-party-id="${party.id}">Negociar</button>`}</article>`}
+  function regimeCard(r,c){const active=c.politics.regimeId===r.id;return `<article class="regime-card ${active?"active":""}"><header><h3>${esc(r.name)}</h3><b>${r.pluralism}</b></header><p>${esc(r.description)}</p><div class="regime-metrics"><span>Pluralismo ${r.pluralism}</span><span>Mercado ${r.economicFreedom}</span><span>Control ${r.stateControl}</span></div><button data-action="changeRegime" data-regime-id="${r.id}" ${active?"disabled":""}>${active?"Régimen vigente":"Iniciar transición"}</button></article>`}
+  function techCard(t,c){const done=c.completedTechs.includes(t.id),active=c.techQueue.find(q=>q.techId===t.id),locked=(t.requires||[]).some(x=>!c.completedTechs.includes(x));return `<article class="tech-card ${locked?"locked":""}"><header><h3>${t.icon} ${esc(t.name)}</h3><b>${done?"✓":t.cost}</b></header><p>${esc(t.description)}</p><div class="info-row"><span>Duración</span><b>${t.months} meses</b></div>${active?progress(active.totalMonths||t.months,active.monthsRemaining):done?`<b class="positive">COMPLETADA</b>`:`<button data-action="research" data-tech-id="${t.id}" ${locked?"disabled":""}>Investigar</button>`}</article>`}
+  function unitCard(u,batch){const cost=(u.unitCost||u.cost||0)*batch;return `<article class="unit-card"><div class="unit-visual"><span>${esc(u.category)}</span><img src="${u.icon}" alt="${esc(u.name)}"></div><div class="unit-info"><h3>${esc(u.name)}</h3><p class="muted">${esc(u.description||"")}</p><div class="unit-stats"><span>Ataque <b>${u.stats.attack}</b></span><span>Defensa <b>${u.stats.defense}</b></span><span>Cantidad <b>${fmt0(batch)}</b></span><span>Coste <b>${money(cost)}</b></span><span>Plazo base <b>${fmt0(u.productionDays||60)} d</b></span><span>Tipo <b>${esc(u.unitName||"unidades")}</b></span></div><button data-action="queueUnit" data-unit-id="${u.id}" data-quantity="${batch}">Producir x${fmt0(batch)}</button></div></article>`}
+  function deployedUnit(u){
+    const c=controlled(),d=unitDef(u.typeId),ownRegions=E().getControlledRegions?.(state,c.id)||(E().getCountryRegions?.(state,c.id)||[]).filter(r=>(r.controllerId||c.id)===c.id),region=E().getRegion?.(state,c.id,u.regionId);
+    const wars=state.wars.filter(w=>!w.ended&&(w.attacker===c.id||w.defender===c.id)),enemyOptions=[],enemyUnits=[],enemyCountries=[];
+    for(const w of wars){const enemyId=w.attacker===c.id?w.defender:w.attacker,enemy=E().getCountry(state,enemyId);if(!enemy)continue;enemyCountries.push(enemy);for(const r of E().getCountryRegions?.(state,enemyId)||[])if((r.controllerId||enemyId)!==c.id)enemyOptions.push({countryId:enemyId,region:r});for(const target of enemy.units||[])if(target.quantity>0&&E().compatibleUnitTargets?.(u,target)!==false)enemyUnits.push({country:enemy,unit:target,def:unitDef(target.typeId)})}
+    const movement=u.movement,progress=movement?clamp((movement.progress||0)*100,0,100):0;
+    return `<article class="deployed-unit"><img src="${d?.icon||""}" alt=""><div><h4>${esc(d?.name||u.name)}</h4><p>${fmt0(u.quantity)} ${esc(d?.unitName||"unidades")} · ${esc(region?.name||c.name)}</p><span>${pct(u.readiness)} · EXP ${fmt0(u.experience)} · ${esc(u.status||"desplegada")}</span>${movement?`<div class="progress"><i style="width:${progress}%"></i></div><small>${fmt0(movement.daysRemaining)} días restantes · ${esc(movement.mode||"movimiento")}</small>`:`<div class="unit-orders"><select id="deploy-${u.id}">${ownRegions.map(x=>{const owner=E().getCountry(state,x.countryId||c.id);return `<option value="${x.countryId||c.id}|${x.id}" ${x.id===u.regionId?"selected":""}>Mover: ${owner?.flag||"🏳️"} ${esc(x.name)}</option>`}).join("")}</select><button data-action="moveUnit" data-unit-id="${u.id}">Mover</button>${u.quantity>1?`<input id="splitQty-${u.id}" type="number" min="1" max="${Math.max(1,u.quantity-1)}" value="${Math.max(1,Math.floor(u.quantity/2))}" aria-label="Cantidad a separar"><select id="splitRegion-${u.id}">${ownRegions.map(x=>`<option value="${x.id}" ${x.id===u.regionId?"selected":""}>Destacamento: ${esc(x.name)}</option>`).join("")}</select><button data-action="splitUnit" data-unit-id="${u.id}">Dividir grupo</button>`:""}${enemyUnits.length?`<select id="attackUnit-${u.id}">${enemyUnits.map(x=>`<option value="${x.country.id}|${x.unit.id}">Atacar unidad: ${x.country.flag} ${esc(x.def?.name||x.unit.typeId)} · ${fmt0(x.unit.quantity)} · ${esc(E().getRegion?.(state,x.country.id,x.unit.regionId)?.name||x.country.name)}</option>`).join("")}</select><button class="danger-btn" data-action="attackUnit" data-unit-id="${u.id}">Atacar unidad</button>`:""}${enemyCountries.length?`<select id="attackCountry-${u.id}">${enemyCountries.map(x=>`<option value="${x.id}">Ofensiva contra: ${x.flag} ${esc(x.name)}</option>`).join("")}</select><button class="danger-btn" data-action="attackCountry" data-unit-id="${u.id}">Atacar país</button>`:""}${enemyOptions.length?`<select id="attack-${u.id}">${enemyOptions.map(x=>`<option value="${x.countryId}|${x.region.id}">Invadir región: ${esc(x.region.name)} · ${esc(x.region.resourceProfile?.primary||"recursos")}</option>`).join("")}</select><button class="danger-btn" data-action="attackRegion" data-unit-id="${u.id}">Invadir región</button>`:""}</div>`}</div></article>`
+  }
+  function parliamentChart(c){const parties=[...c.politics.parties].sort((a,b)=>(a.axis||0)-(b.axis||0)),total=Math.max(1,parties.reduce((s,p)=>s+(p.popularity||0),0)),coalition=new Set(c.politics.coalition||[]),support=E().coalitionInfo?.(state,c.id)?.support||0;let angle=180,outer="",inner="";for(const p of parties){const span=(p.popularity||0)/total*180,end=angle+span;outer+=arcPath(200,185,166,108,angle,end,p.color,`<title>${esc(p.name)} ${pct(p.popularity)}</title>`);inner+=arcPath(200,185,96,58,angle,end,coalition.has(p.id)?p.color:"#243544",`<title>${coalition.has(p.id)?"Gobierno":"Oposición"}: ${esc(p.name)}</title>`);angle=end}return `<div class="parliament-chart"><svg viewBox="0 0 400 205" role="img" aria-label="Semicírculo de poder político: 180 grados equivalen al 100 por cien"><text x="200" y="10" text-anchor="middle" class="parliament-majority-label">50% · MAYORÍA</text>${outer}${inner}<line x1="38" y1="185" x2="362" y2="185" class="parliament-base"/><line x1="200" y1="17" x2="200" y2="128" class="parliament-majority"/><text x="200" y="162" text-anchor="middle" class="parliament-number">${pct(support)}</text><text x="200" y="180" text-anchor="middle" class="parliament-label">PODER DE LA COALICIÓN</text></svg><div class="party-legend">${parties.map(p=>`<span><i style="background:${p.color}"></i>${esc(p.name)} ${fmt1(p.popularity)}%</span>`).join("")}</div></div>`}
+  function arcPath(cx,cy,rOuter,rInner,startDeg,endDeg,color,title){const polar=(r,a)=>{const rad=a*Math.PI/180;return[cx+Math.cos(rad)*r,cy+Math.sin(rad)*r]},a=polar(rOuter,startDeg),b=polar(rOuter,endDeg),c=polar(rInner,endDeg),d=polar(rInner,startDeg),large=endDeg-startDeg>180?1:0;return `<path d="M ${a[0]} ${a[1]} A ${rOuter} ${rOuter} 0 ${large} 1 ${b[0]} ${b[1]} L ${c[0]} ${c[1]} A ${rInner} ${rInner} 0 ${large} 0 ${d[0]} ${d[1]} Z" fill="${color}" stroke="#07131d" stroke-width="1">${title}</path>`}
+  function regionBattleCard(b){const a=E().getCountry(state,b.attackerId),d=E().getCountry(state,b.defenderId),r=E().getRegion(state,b.targetCountryId,b.regionId);return `<article class="region-battle-card"><header><b>⚔️ ${esc(r?.name||b.regionId)}</b><span>${a.flag} ${esc(a.name)} vs ${d.flag} ${esc(d.name)}</span></header><div class="meter"><i style="width:${clamp(b.controlProgress,0,100)}%"></i></div><p>${esc(b.lastResult||"Combate activo")} · control ${fmt1(b.controlProgress)}%</p><small>Día ${b.days} · bajas ${fmt0(b.attackerLosses)} / ${fmt0(b.defenderLosses)}</small></article>`}
+  function tradeRouteCard(route,c){const otherId=route.countries.find(id=>id!==c.id),other=E().getCountry(state,otherId),ships=route.ships||[],lead=ships[0],cargo=lead?.cargo||{};return `<article class="trade-route-card"><header><div><b>${c.flag} ${esc(c.name)} ⇄ ${other?.flag||"🏳️"} ${esc(other?.name||otherId)}</b><small>Volumen ${fmt1(route.volume||0)} · Eficiencia ${fmt1(route.efficiency||0)}%</small></div><strong>${ships.length} 🚢</strong></header><div class="trade-cargo"><span>${cargo.icon||"📦"}</span><div><b>${esc(cargo.name||"Carga mixta")}</b><small>${fmt1(cargo.quantity||0)} ${esc(cargo.unit||"")} · ${lead?.status||"En ruta"}</small></div></div><div class="meter"><i style="width:${clamp((lead?.progress||0)*100,0,100)}%"></i></div></article>`}
+
+  function diplomacyActions(target,c){const conflict=warBetween(c.id,target.id);return `<div class="diplomacy-buttons"><button data-action="diplomacy" data-country-id="${target.id}" data-kind="trade">Comercio</button><button data-action="diplomacy" data-country-id="${target.id}" data-kind="aid">Ayuda</button><button data-action="diplomacy" data-country-id="${target.id}" data-kind="alliance">Alianza</button><button data-action="diplomacy" data-country-id="${target.id}" data-kind="embargo">Embargo</button><button class="danger-btn" data-action="war" data-country-id="${target.id}" data-kind="${conflict?"ceasefire":"declare"}">${conflict?"Alto el fuego":"Declarar guerra"}</button></div>`}
+  function diplomacyCard(target,c){const rel=c.relations[target.id]??50;return `<article class="diplomacy-card"><header><div class="flag-large">${target.flag}</div><div><h3>${esc(target.name)}</h3><p>${esc(target.government.regime)}</p></div><b class="${rel>=70?"positive":rel<38?"negative":"warning"}">${fmt1(rel)}</b></header><div class="meter"><i style="width:${clamp(rel,0,100)}%"></i></div><footer><button onclick="NEXUS_ACTIONS.selectCountry('${target.id}')">Inspeccionar</button><button data-action="diplomacy" data-country-id="${target.id}" data-kind="trade">Comercio</button><button data-action="war" data-country-id="${target.id}" data-kind="${warBetween(c.id,target.id)?"ceasefire":"declare"}">${warBetween(c.id,target.id)?"Paz":"Guerra"}</button></footer></article>`}
+  function operationCard(op,target){return `<article class="building-card"><header><h3>${op.icon} ${esc(op.name)}</h3><b>${money(op.cost)}</b></header><p>${esc(op.description)}</p><footer><button data-action="operation" data-country-id="${target.id}" data-operation-id="${op.id}">Ejecutar</button></footer></article>`}
+  function warBetween(a,b){return state.wars.find(w=>!w.ended&&((w.attacker===a&&w.defender===b)||(w.attacker===b&&w.defender===a)))}
+  function warCompact(w){const a=E().getCountry(state,w.attacker),d=E().getCountry(state,w.defender);return `<div class="war-line"><span>${a.flag} ${esc(a.name)}</span><div><b>${w.warScore>=0?"←":"→"} ${fmt1(Math.abs(w.warScore))}</b><div class="war-score"><i style="left:${clamp((w.warScore+100)/2,0,100)}%"></i></div><small>Día ${w.days||0}</small></div><span>${d.flag} ${esc(d.name)}</span></div>`}
+  function warCard(w,showSettlement=false){
+    const a=E().getCountry(state,w.attacker),d=E().getCountry(state,w.defender),battle=w.lastBattle,opts=E().warSettlementOptions?.(state,w.id),participant=(w.attacker===controlled().id||w.defender===controlled().id),adv=opts?.advantage||0,occupied=opts?.occupied||[],engagements=(state.unitEngagements||[]).filter(e=>!e.resolved&&e.warId===w.id),regional=(state.regionBattles||[]).filter(e=>!e.ended&&e.warId===w.id);
+    return `<article class="war-card ${w.ended?"ended":"active"}"><header><div><h3>${a.flag} ${esc(a.name)} <span>vs</span> ${d.flag} ${esc(d.name)}</h3><p>Día ${w.days||0} · ${esc(w.phase||"Conflicto")} · Intensidad ${fmt1(w.intensity||0)} · Control ${fmt1(w.territoryControl||0)} · War score ${fmt1(w.warScore||0)}</p></div><b>${w.result||(w.ended?"CONFLICTO FINALIZADO":"GUERRA ACTIVA")}</b></header>${warCompact(w)}<div class="war-detail-strip"><span>Logística ${fmt1(w.logistics?.attacker||0)} / ${fmt1(w.logistics?.defender||0)}</span><span>Aire ${fmt1(w.airSuperiority?.attacker||0)} / ${fmt1(w.airSuperiority?.defender||0)}</span><span>Mar ${fmt1(w.navalControl?.attacker||0)} / ${fmt1(w.navalControl?.defender||0)}</span><span>Operaciones ${engagements.length+regional.length}</span></div><div class="battle-grid"><div><h4>Fuerza atacante</h4>${forceComposition(a)}</div><div><h4>Fuerza defensora</h4>${forceComposition(d)}</div></div>${battle?`<div class="battle-report"><h4>⚔️ ${esc(battle.title)}</h4><p>${esc(battle.summary)}</p><div>${(battle.attackerUnits||[]).map(x=>`<span>${esc(x)}</span>`).join("")}</div><div>${(battle.defenderUnits||[]).map(x=>`<span>${esc(x)}</span>`).join("")}</div><small>Bajas del último parte: ${fmt0(battle.attackerLosses)} / ${fmt0(battle.defenderLosses)}</small></div>`:`<p class="muted">La primera batalla se generará al avanzar el día o al ordenar un ataque directo.</p>`}<div class="war-operations-preview">${(w.operations||[]).slice(0,4).map(o=>`<p><time>${esc(o.date||state.date)}</time>${esc(o.text||"")}</p>`).join("")}</div><footer><span>Bajas acumuladas: ${fmt0(w.attackerLosses)} / ${fmt0(w.defenderLosses)} · regiones ocupadas ${occupied.length}</span><div class="war-actions"><button class="primary-btn" data-action="openWarRoom" data-war-id="${w.id}">Abrir sala de guerra</button>${participant?`${!w.ended?`<button data-action="signPeace" data-war-id="${w.id}">Paz negociada</button>${opts?.canDemand?`<button class="primary-btn" data-action="demandSurrender" data-war-id="${w.id}">Exigir capitulación</button>`:""}`:""}${opts?.canAnnexOccupied?`<button data-action="annexOccupied" data-war-id="${w.id}">Anexar regiones ocupadas</button>`:""}${opts?.canAnnexCountry?`<button class="danger-btn" data-action="annexCountry" data-war-id="${w.id}">Anexar país</button>`:""}${w.ended&&!w.settlement?.resolved?`<button data-action="signPeace" data-war-id="${w.id}">Cerrar con paz</button>`:""}`:""}</div></footer>${showSettlement&&w.settlement?`<div class="settlement-summary"><b>Tratado: ${esc(w.settlement.type||w.settlement.status||"pendiente")}</b><span>${w.settlement.date||"Decisión pendiente"}</span></div>`:""}</article>`
+  }
+  function forceComposition(c){const p=E().countryCombatPower(state,c);return p.byType.slice(0,5).map(x=>`<div class="force-row"><span>${esc(x.name)}</span><b>${fmt0(x.quantity)}</b></div>`).join("")}
+  function totalUnits(c){return (c.units||[]).reduce((s,u)=>s+(Number(u.quantity)||0),0)}
+  function queueHTML(queue=[]){if(!queue.length)return `<div class="empty-state"><span>⌛</span><p>Sin proyectos activos.</p></div>`;return `<div class="queue-list">${queue.map(q=>{const rem=q.daysRemaining??(q.monthsRemaining!=null?q.monthsRemaining*30:0),total=q.totalDays??(q.totalMonths!=null?q.totalMonths*30:1),region=(E().getCountryRegions?.(state,controlled().id)||[]).find(r=>r.id===(q.targetRegionId||q.regionId));return `<div class="queue-item"><div><b>${esc(q.name||q.techId||q.typeId||"Proyecto")}</b><small>${esc(region?.name||"Proyecto nacional")} · ${fmt0(rem)} días · ${esc(q.status||"en curso")}</small></div>${progress(total,rem)}</div>`}).join("")}</div>`}
+  function projectCard(p){const c=controlled(),active=c.productionQueue.find(q=>q.projectId===p.id),done=c.projects.includes(p.id)&&!active;return `<article class="project-card"><div><h4>${esc(p.name)}</h4><p>${money(p.cost)} · ${p.months} meses</p></div>${done?`<b class="positive">HECHO</b>`:active?`<b>EN CURSO</b>`:`<button data-action="startProject" data-project-id="${p.id}">Iniciar</button>`}</article>`}
+  function eventRow(e){return `<article class="event-row"><div class="event-icon">${eventIcon(e.type)}</div><time>${e.date}</time><div><h4>${esc(e.title)}</h4><p>${esc(e.text)}</p></div></article>`}
+  function actionCard(icon,title,text,button){return `<article class="action-card"><div class="icon">${icon}</div><div><h4>${esc(title)}</h4><p>${esc(text)}</p></div>${button}</article>`}
+  function nationalDecisionCard(d,c){const last=c.nationalDecisions?.[d.id],elapsed=last?daysSince(last,state.date):Infinity,remaining=last?Math.max(0,d.cooldown-elapsed):0,disabled=remaining>0||c.economy.treasury<d.treasury||c.politics.politicalCapital<d.political;return `<article class="decision-card"><header><span>${d.icon}</span><div><h4>${esc(d.name)}</h4><small>${d.treasury} mil M€ · ${d.political} CP · espera ${d.cooldown} días</small></div></header><p>${esc(d.description)}</p><button data-action="nationalDecision" data-decision-id="${d.id}" ${disabled?"disabled":""}>${remaining?`Disponible en ${remaining} días`:"Aprobar decisión"}</button></article>`}
+  function corporateDecisionCard(company,c,policies){const held=E().getHolding?.(state,company.id,c.id)||company.ownershipByCountry?.[c.id]||0,current=company.controlPolicies?.[c.id]||"reinvest",monthly=Math.max(0,(company.financials?.profit||0)/12*held/100),last=company.lastDistribution?.[c.id];return `<article class="corporate-card"><header><div><h4>${esc(company.name)}</h4><small>${esc(company.sector)} · control ${fmt1(held)}%</small></div><b>${money(monthly)}/mes</b></header><p>Beneficio atribuible estimado. Última transferencia al Tesoro: ${money(last?.treasury||0)}.</p><div class="corporate-policy-row"><select id="companyPolicy-${company.id}">${policies.map(p=>`<option value="${p.id}" ${p.id===current?"selected":""}>${p.icon} ${esc(p.name)}</option>`).join("")}</select><button data-action="companyPolicy" data-company-id="${company.id}">Aplicar</button></div><small>${esc(policies.find(p=>p.id===current)?.description||"")}</small></article>`}
+  function engagementCard(e){const ac=E().getCountry(state,e.attackerCountryId),dc=E().getCountry(state,e.defenderCountryId),au=ac?.units?.find(x=>x.id===e.attackerUnitId),du=dc?.units?.find(x=>x.id===e.defenderUnitId);return `<article class="engagement-card"><header><b>${esc(e.title||"Operación")}</b><span>${esc(e.status||"activa")}</span></header><p>${ac?.flag||""} ${esc(ac?.name||"")} → ${dc?.flag||""} ${esc(dc?.name||"")}</p><div>${au?`${esc(unitDef(au.typeId)?.name||au.typeId)}: ${fmt0(au.quantity)}`:"Atacante no disponible"}${du?` · ${esc(unitDef(du.typeId)?.name||du.typeId)}: ${fmt0(du.quantity)}`:" · objetivo estratégico"}</div><small>Día ${e.days||0} · llegada ${fmt0(e.daysRemaining||0)} días · bajas ${fmt0(e.attackerLosses||0)} / ${fmt0(e.defenderLosses||0)}</small></article>`}
+  function warRoomHTML(w){const a=E().getCountry(state,w.attacker),d=E().getCountry(state,w.defender),engagements=(state.unitEngagements||[]).filter(e=>e.warId===w.id&&!e.resolved),regional=(state.regionBattles||[]).filter(e=>e.warId===w.id&&!e.ended),opts=E().warSettlementOptions?.(state,w.id);return `<div class="war-room-modal"><div class="kpi-grid four">${kpi("Fase",w.phase||"Conflicto",`${w.days||0} días`)}${kpi("War score",fmt1(w.warScore||0),`${a.flag} ${a.name} vs ${d.flag} ${d.name}`)}${kpi("Bajas",`${fmt0(w.attackerLosses)}/${fmt0(w.defenderLosses)}`,"atacante / defensor")}${kpi("Intensidad",pct(w.intensity||0),`${engagements.length+regional.length} operaciones`)}</div><section class="card"><div class="card-title"><h3>Teatros de operaciones</h3><span>Control y presión por eje</span></div><div class="theater-grid">${(w.theaters||[]).map(t=>`<article><b>${esc(t.name)}</b><span>${esc(t.status||"Preparación")}</span><div class="meter"><i style="width:${clamp((t.control||0)+50,0,100)}%"></i></div><small>Intensidad ${fmt1(t.intensity||0)} · control ${fmt1(t.control||0)}</small></article>`).join("")||`<p class="muted">Sin teatros configurados.</p>`}</div></section><section class="card"><div class="card-title"><h3>Operaciones activas</h3><span>Órdenes de unidades y ofensivas regionales</span></div>${(engagements.length||regional.length)?engagements.map(engagementCard).join("")+regional.map(regionBattleCard).join(""):`<p class="muted">No hay operaciones tácticas activas. Ordena ataques desde las unidades desplegadas.</p>`}</section><section class="card"><div class="card-title"><h3>Últimos partes de batalla</h3><span>${(w.battles||[]).length} registros</span></div><div class="battle-log">${(w.battles||[]).slice(0,15).map(b=>`<article><time>${esc(b.date||"")}</time><div><b>${esc(b.title||"Batalla")}</b><p>${esc(b.summary||"")}</p><small>Bajas ${fmt0(b.attackerLosses||0)} / ${fmt0(b.defenderLosses||0)}</small></div></article>`).join("")||`<p class="muted">El registro se llenará al avanzar la simulación.</p>`}</div></section>${warCard(w,true)}</div>`}
+  function renderWarRoomIntoModal(warId){const w=state.wars.find(x=>x.id===warId),content=document.getElementById("modalContent");if(!w||!content)return;content.dataset.warRoomId=warId;content.innerHTML=warRoomHTML(w);set("modalTitle",`⚔️ Sala de guerra · ${E().getCountry(state,w.attacker)?.name||""} vs ${E().getCountry(state,w.defender)?.name||""}`)}
+  function openWarModal(warId){const w=state.wars.find(x=>x.id===warId);if(!w){toast("No se encuentra el conflicto.","error");return}openModal("Sala de guerra",warRoomHTML(w));const content=document.getElementById("modalContent");if(content)content.dataset.warRoomId=warId;state.warRoom ||= {};state.warRoom.lastOpenedWarId=warId}
+  function daysSince(from,to){const a=Date.parse(`${from}T12:00:00Z`),b=Date.parse(`${to}T12:00:00Z`);return Number.isFinite(a)&&Number.isFinite(b)?Math.max(0,Math.floor((b-a)/86400000)):0}
+  function openCountryModal(){const c=selected();openModal(`${c.flag} ${c.name}`,`<div class="kpi-grid four">${kpi("PIB",money(c.economy.gdp),"")}${kpi("Población",`${fmt1(c.economy.population)} M`,"")}${kpi("Militar",fmt1(c.systems.military),"")}${kpi("Tecnología",fmt1(c.systems.technology),"")}</div><section class="card">${info("Régimen",c.government.regime)}${info("Ideología",c.government.ideology)}${info("Legitimidad",pct(c.government.legitimacy))}${info("Instalaciones",fmt0(c.id==="ESP"?state.regions.reduce((s,r)=>s+r.buildings.length,0):c.facilities.length))}${info("Unidades",fmt0(totalUnits(c)))}</section>`)}
+  function openModal(title,html){set("modalTitle",title);const c=document.getElementById("modalContent");if(c){c.dataset.warRoomId="";c.innerHTML=html;}const b=document.getElementById("modalBackdrop");if(b)b.hidden=false}
+  function closeModal(){const b=document.getElementById("modalBackdrop");if(b)b.hidden=true}
+  function openImportModal(){openModal("Importar partida",`<div class="form-grid"><label>Pega el JSON exportado<textarea id="importText" rows="14"></textarea></label><button onclick="NEXUS_ACTIONS.importSave(document.getElementById('importText').value)">Importar</button></div>`)}
+  function toast(message,type="info"){const box=document.getElementById("toastContainer");if(!box)return;const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=message;box.appendChild(el);setTimeout(()=>el.remove(),4300)}
+
+  function safeBudget(c){try{return E().calculateDetailedBudget(c,state)}catch(_){return{monthlyRevenue:c.economy.monthlyRevenue||0,monthlySpending:c.economy.monthlySpending||0,monthlyBalance:c.economy.monthlyBalance||0}}}
+  function budgetSlider(k,v){return `<div class="slider-card budget-control"><label><span>${budgetName(k)}</span><output>${v}%</output></label><div class="budget-stepper"><button data-action="adjustBudget" data-budget="${k}" data-delta="-0.5" title="Reducir 0,5 puntos">−0,5</button><input type="range" min="0.5" max="20" step="0.1" value="${v}" data-budget="${k}"><button data-action="adjustBudget" data-budget="${k}" data-delta="0.5" title="Aumentar 0,5 puntos">+0,5</button></div></div>`}
+  function taxSlider(v){return `<div class="slider-card"><label><span>Presión fiscal</span><output>${v}%</output></label><input type="range" min="10" max="52" step="0.5" value="${v}" data-tax-rate></div>`}
+  function toggleSetting(key,label,value){return `<label class="info-row"><span>${label}</span><input type="checkbox" data-setting="${key}" ${value?"checked":""}></label>`}
+  function progress(total,remaining){const p=clamp((1-remaining/Math.max(total,1))*100,0,100);return `<div class="progress"><i style="width:${p}%"></i></div>`}
+  function sparkline(values,color="#47b8ff"){const arr=values?.length?values:[0,1],min=Math.min(...arr),max=Math.max(...arr),pts=arr.map((v,i)=>`${(i/Math.max(1,arr.length-1)*300).toFixed(1)},${(100-(v-min)/Math.max(.0001,max-min)*82-9).toFixed(1)}`).join(" ");return `<svg class="sparkline" viewBox="0 0 300 110" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`}
+  function kpi(label,value,detail="",cls=""){return `<div class="kpi-card ${cls}"><span>${esc(label)}</span><b>${value}</b><small>${esc(detail)}</small></div>`}
+  function heading(title,subtitle,actionsHTML=""){return `<div class="panel-heading"><div><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></div><div class="panel-actions">${actionsHTML}</div></div>`}
+  function info(label,value){return `<div class="info-row"><span>${esc(label)}</span><b>${value}</b></div>`}
+  function meterLine(label,value){return `<div class="system-line"><span>${esc(label)}</span><b>${fmt1(value)}</b><div class="meter"><i style="width:${clamp(value,0,100)}%"></i></div></div>`}
+  function systemMeter(label,value,detail){return `<div class="system-meter"><div><span>${esc(label)}</span><b>${fmt1(value)}</b></div><div class="meter"><i style="width:${clamp(value,0,100)}%"></i></div><small>${esc(detail)}</small></div>`}
+  function resourceLine(icon,label,value,good){return `<div class="resource-line"><span>${icon}</span><b>${esc(label)}</b><strong class="${good?"positive":"warning"}">${value}</strong></div>`}
+  function set(id,value){const el=document.getElementById(id);if(el)el.textContent=value}
+  function clamp(v,a,b){return Math.max(a,Math.min(b,Number(v)||0))}
+  function partyName(c){return c.politics?.parties?.find(p=>p.id===c.politics.rulingPartyId)?.name||c.government.ideology}
+  function eventIcon(t){return({system:"⚙️",economy:"💶",energy:"⚡",social:"👥",diplomacy:"🤝",intel:"🛰️",military:"🛡️",battle:"⚔️",politics:"🗳️",project:"🏗️",region:"🗺️",market:"📈",technology:"🔬",policy:"🏛️",objective:"🎯",climate:"🌡️",defense:"⚔️",industry:"🏭",shipping:"🚢",trade:"🚢",decision:"📨"})[t]||"📰"}
+  function budgetName(k){return({health:"Sanidad",education:"Educación",defense:"Defensa",infrastructure:"Infraestructura",research:"I+D",welfare:"Protección social"})[k]||k}
+  function sectorName(k){return({services:"Servicios",industry:"Industria",public:"Sector público",agriculture:"Agricultura",construction:"Construcción",tourism:"Turismo",automotive:"Automoción",energy:"Energía",digital:"Digital",defense:"Defensa"})[k]||k}
+
+  return {initialize,renderAll,renderContext,toast,openModal,closeModal,openWarModal};
+})();
