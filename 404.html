@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#06111c">
+  <title>NEXUS Global · Redirigiendo</title>
+  <style>html,body{height:100%;margin:0;background:#03080f;color:#eaf7ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{display:grid;place-items:center}.box{padding:28px;border:1px solid #244d6b;border-radius:14px;background:#071827;text-align:center}.mark{font-size:32px;font-weight:900;color:#56c9ff}p{color:#93afc2}</style>
+</head>
+<body>
+  <div class="box"><div class="mark">N</div><h1>NEXUS GLOBAL</h1><p>Volviendo al centro de mando…</p></div>
+  <script>
+    (()=>{
+      const parts=location.pathname.split('/').filter(Boolean);
+      const githubProject=location.hostname.endsWith('github.io')&&parts.length>0;
+      const root=githubProject?`/${parts[0]}/`:'/';
+      location.replace(root);
+    })();
+  </script>
+</body>
+</html>

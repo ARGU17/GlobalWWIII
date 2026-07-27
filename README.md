@@ -1,0 +1,131 @@
+# NEXUS Global — Alpha v1.7
+
+Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
+
+## Cambios principales de Alpha v1.7
+
+- **Anexión integral:** el vencedor absorbe territorios, población, PIB, Tesoro, recursos, fuerzas armadas, empresas, instalaciones y proyectos. Las regiones pasan al inventario territorial del nuevo soberano y admiten construcción, ampliación e inversión.
+- **Elecciones reactivas:** el voto y los 350 escaños responden a aprobación, crecimiento, inflación, desempleo y balance público; cada elección registra las ganancias y pérdidas de cada partido.
+- **Comercio beneficioso:** los acuerdos generan ingresos mensuales para ambos socios y las importaciones cubren de forma positiva los déficits de recursos.
+- **IA geopolítica:** los países negocian, comercian, sancionan y pueden iniciar conflictos, además de desarrollar su economía.
+- **Centro de decisiones:** Resumen recibe propuestas, crisis, coaliciones y planes de integración con varias respuestas aplicables.
+
+## Sistemas de Alpha v1.6 conservados
+
+### Cronología indefinida
+
+- La campaña sigue avanzando después del 30 de abril de 2029 y no tiene fecha final.
+- El motor valida la fecha en cada tick y recupera automáticamente una cronología dañada.
+- La velocidad base se mantiene en **1 día cada 10 segundos reales**; continúan disponibles x1, x2, x4 y +1 día.
+- El bucle usa temporizadores encadenados para impedir ticks simultáneos y bloqueos acumulativos.
+
+### Sala de guerra y operaciones
+
+- Al declarar una guerra se abre automáticamente una **Sala de Guerra**.
+- Cada conflicto muestra fase, intensidad, duración, war score, control territorial, bajas, logística, superioridad aérea, control naval, teatros y operaciones activas.
+- Registro de partes de batalla y composición de fuerzas de ambos bandos.
+- Las unidades desplegadas pueden:
+  - atacar una unidad enemiga compatible;
+  - lanzar una ofensiva general contra un país;
+  - invadir una región seleccionada;
+  - dividirse y abrir frentes desde diferentes regiones.
+- Los enfrentamientos directos tienen desplazamiento, contacto, pérdidas, preparación, resolución y efecto en el war score.
+- Se mantienen capitulación, paz negociada, anexión regional y anexión total cuando se cumplen las condiciones.
+
+### Gobierno de empresas controladas
+
+Cuando un Estado posee al menos el 51% de una empresa puede decidir qué hacer con el beneficio atribuible:
+
+- reinversión empresarial;
+- dividendo al Tesoro;
+- I+D soberana;
+- empleo y expansión;
+- reserva estratégica.
+
+Las decisiones aparecen en el panel **Política**, junto con la participación, el beneficio y el efecto esperado. El reparto se procesa en el cierre mensual.
+
+### Nuevas decisiones nacionales
+
+El panel político incorpora doce decisiones con coste presupuestario, capital político y periodo de enfriamiento:
+
+- Plan Nacional de Vivienda;
+- Pacto Industrial 2035;
+- Fondo Soberano Nacional;
+- Reforma del Mercado Laboral;
+- Pacto Sanitario;
+- Programa Educativo y Científico;
+- Ley de Preparación Nacional;
+- Transición Energética Acelerada;
+- Pacto Migratorio y Demográfico;
+- Pacto de Cohesión Territorial;
+- Estado Digital e IA Pública;
+- Ley de Seguridad Alimentaria.
+
+### Diplomacia global
+
+- El directorio diplomático muestra los **197 países** de la simulación, sin el límite visual anterior de 36.
+- Se mantienen relaciones, tratados, comercio, ayuda, sanciones, guerra y toma de control.
+
+### Presupuesto nacional
+
+- Cada partida presupuestaria dispone de botones **−0,5** y **+0,5** puntos porcentuales.
+- También puede ajustarse mediante el deslizador.
+- Rango operativo: 0,5%–20% del PIB para sanidad, educación, defensa, infraestructura, I+D y protección social.
+
+## Sistemas conservados
+
+- Mapa mundial Web Mercator con geometrías locales y capa OSM opcional.
+- 197 países y regiones estratégicas.
+- 17 comunidades autónomas españolas.
+- 42 instalaciones industriales, energéticas, logísticas, sanitarias y residenciales.
+- 62 tecnologías.
+- 176 empresas simuladas en Bolsa.
+- Producción y consumo de recursos.
+- Comercio marítimo animado.
+- Producción militar por lotes x1, x10, x100 y x1000.
+- Movimiento, despliegue, invasión y anexión territorial.
+- Parlamento semicircular, elecciones y coaliciones.
+- Guardado local, importación y exportación JSON.
+
+## Estructura
+
+```text
+index.html
+404.html
+.nojekyll
+css/
+js/
+assets/
+tests/
+README.md
+CHANGELOG.md
+VALIDATION.md
+UPLOAD_TO_GITHUB.md
+```
+
+## Uso local
+
+No abras `index.html` directamente mediante `file://`, porque el navegador puede bloquear la carga del mapa. Ejecuta un servidor local desde la carpeta del proyecto:
+
+```bash
+python3 -m http.server 8000
+```
+
+Después abre `http://localhost:8000`.
+
+## GitHub Pages
+
+1. Descomprime `NEXUS_Global_Alpha_v1.7_GitHub.zip`.
+2. Sube **todos los archivos y carpetas interiores** a la raíz del repositorio.
+3. Activa `Settings → Pages → Deploy from a branch → main → / (root)`.
+4. Espera al despliegue y realiza una recarga forzada.
+
+El ZIP ya tiene `index.html` en la raíz. GitHub no descomprime ZIP automáticamente.
+
+## Guardados
+
+Alpha v1.7 utiliza la clave `nexus_alpha_v1_7_save` y puede migrar guardados anteriores. Para una prueba completamente limpia, usa **Reiniciar campaña** o borra el almacenamiento local del sitio.
+
+## Nota de simulación
+
+Los precios bursátiles, estados financieros, resultados militares y demás variables son datos de juego. No representan información financiera, militar o política en tiempo real.
