@@ -21,7 +21,7 @@ global.document={
 global.setInterval=()=>1;global.clearInterval=()=>{};global.confirm=()=>true;
 global.NEXUS_MAP_ENGINE={render(){}};
 
-for(const file of ["world-data.js","data.js","catalog.js","politics.js","economy.js","simulation-plus.js","deep-systems.js","alpha-v13.js","alpha-v14.js","alpha-v15.js","alpha-v16.js","alpha-v17.js","ui.js"]){
+for(const file of ["world-data.js","data.js","catalog.js","politics.js","economy.js","simulation-plus.js","deep-systems.js","alpha-v13.js","alpha-v14.js","alpha-v15.js","alpha-v16.js","alpha-v17.js","alpha-v18.js","ui.js"]){
   vm.runInThisContext(fs.readFileSync(path.join(root,"js",file),"utf8"),{filename:file});
 }
 const state=NEXUS_ECONOMY.createInitialState();
@@ -35,9 +35,12 @@ if(!get("mainPanel").innerHTML.includes("Configuración"))throw new Error("El ú
 state.activePanel="overview";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("Centro de decisiones")||!get("mainPanel").innerHTML.includes("Decisión de validación"))throw new Error("El Resumen no muestra decisiones accionables");
 state.activePanel="politics";NEXUS_UI.renderAll();const politics=get("mainPanel").innerHTML;
 if(!politics.includes("PODER DE LA COALICIÓN")||!politics.includes("50% · MAYORÍA")||!politics.includes("Mesa de coalición"))throw new Error("Gráfico o mesa de coalición ausente");
-state.activePanel="stock";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("176"))throw new Error("Bolsa ampliada no visible");
+state.activePanel="stock";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("176")||!get("mainPanel").innerHTML.includes("Mis participaciones"))throw new Error("Bolsa ampliada o cartera propia no visible");
+
+state.activePanel="economy";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("Gestión de deuda")||!get("mainPanel").innerHTML.includes("I+D prevista"))throw new Error("Economía v1.8 incompleta");
+state.activePanel="technology";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("Desbloquea / potencia"))throw new Error("La tecnología no explica qué industria habilita");
 
 state.activePanel="diplomacy";NEXUS_UI.renderAll();const diplomacy=get("mainPanel").innerHTML;if(!diplomacy.includes("Afganistán")||!diplomacy.includes("Zimbabue"))throw new Error("El directorio diplomático no contiene todos los países");
 const esp=NEXUS_ECONOMY.getCountry(state,"ESP"),and=NEXUS_ECONOMY.getCountry(state,"AND");esp.relations.AND=0;and.relations.ESP=0;const declaration=NEXUS_ECONOMY.warAction(state,"AND","declare");if(!declaration.ok||!declaration.warId)throw new Error("No se generó guerra para validar la ventana");
 NEXUS_UI.openWarModal(declaration.warId);if(!get("modalContent").innerHTML.includes("Teatros de operaciones")||!get("modalContent").innerHTML.includes("Operaciones activas"))throw new Error("Sala de guerra incompleta");
-console.log(JSON.stringify({ok:true,panels:rendered,politicsChart:true,stockCompanies:state.companies.length,warRoom:true,diplomacyAllCountries:true},null,2));
+console.log(JSON.stringify({ok:true,version:state.version,panels:rendered,politicsChart:true,stockCompanies:state.companies.length,warRoom:true,diplomacyAllCountries:true},null,2));
