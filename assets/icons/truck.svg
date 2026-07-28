@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Camión de transporte terrestre</title>
+  <defs><linearGradient id="cab" x1="0" x2="1"><stop stop-color="#ffd166"/><stop offset="1" stop-color="#f5a623"/></linearGradient></defs>
+  <path fill="#39bde8" d="M4 14a4 4 0 0 1 4-4h30a4 4 0 0 1 4 4v29H4V14Z"/>
+  <path fill="url(#cab)" d="M42 24h9l9 10v9H42V24Z"/>
+  <path fill="#dff6ff" d="M46 28h4l6 7H46v-7Z"/>
+  <path fill="#0c2433" d="M3 42h58v6H3z"/>
+  <circle cx="17" cy="49" r="8" fill="#07131d"/><circle cx="17" cy="49" r="3" fill="#9adcf2"/>
+  <circle cx="49" cy="49" r="8" fill="#07131d"/><circle cx="49" cy="49" r="3" fill="#ffd166"/>
+  <path fill="none" stroke="#e9fbff" stroke-width="3" d="M10 18h24M10 25h24"/>
+</svg>
