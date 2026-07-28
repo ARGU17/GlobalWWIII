@@ -1,14 +1,32 @@
-# NEXUS Global — Alpha v1.7
+# NEXUS Global — Alpha v1.8
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
 
-## Cambios principales de Alpha v1.7
+## Cambios principales de Alpha v1.8
 
-- **Anexión integral:** el vencedor absorbe territorios, población, PIB, Tesoro, recursos, fuerzas armadas, empresas, instalaciones y proyectos. Las regiones pasan al inventario territorial del nuevo soberano y admiten construcción, ampliación e inversión.
-- **Elecciones reactivas:** el voto y los 350 escaños responden a aprobación, crecimiento, inflación, desempleo y balance público; cada elección registra las ganancias y pérdidas de cada partido.
-- **Comercio beneficioso:** los acuerdos generan ingresos mensuales para ambos socios y las importaciones cubren de forma positiva los déficits de recursos.
-- **IA geopolítica:** los países negocian, comercian, sancionan y pueden iniciar conflictos, además de desarrollar su economía.
-- **Centro de decisiones:** Resumen recibe propuestas, crisis, coaliciones y planes de integración con varias respuestas aplicables.
+- **Anexión consolidada:** el Estado derrotado deja de figurar como soberano en mapa, selectores y Diplomacia. Sus regiones, población, PIB, deuda, Tesoro, empresas, unidades, recursos e instalaciones pasan al vencedor, que obtiene un mercado interior automático al 100% de eficiencia.
+- **Reconstrucción de posguerra:** cada territorio absorbido conserva daños de infraestructura, energía e industria. Se puede reconstruir una región por partes, ejecutar un plan integral o responder desde el Centro de decisiones.
+- **Regiones con identidad real:** se sustituyen nombres genéricos por divisiones administrativas y ciudades reales, entre ellas Texas · Austin, Louisiana · Baton Rouge, Antioquia · Medellín y Tánger-Tetuán-Alhucemas.
+- **I+D proporcional:** la generación mensual depende de la inversión en investigación, educación, tecnología e instalaciones científicas. La población y capacidad de países absorbidos aportan una bonificación adicional.
+- **Presupuesto operativo:** sanidad, educación, defensa, infraestructuras, I+D y protección social modifican crecimiento, productividad, estabilidad, tecnología, energía, logística, preparación y capacidad militar.
+- **Economía regional dinámica:** subir industrias recalcula empleo, población, PIB y PIB per cápita de la región. El panel territorial muestra esos valores actualizados.
+- **Deuda gestionable:** Economía permite amortizar el 1%, 5% o 10% del stock; baja el ratio, el tipo de interés y genera ahorro mensual futuro.
+- **IA geopolítica calibrada:** el director usa una base de ocho conflictos interestatales activos y pondera proximidad, relaciones y zonas de riesgo. El techo de seis guerras evita una simulación caótica.
+- **Logística visible:** los ataques mantienen tiempo real de marcha y unidades animadas; las rutas comerciales interiores usan camiones. España distribuye el tráfico entre puertos atlánticos, cantábricos, andaluces y mediterráneos según el origen.
+- **Capas de mapa especializadas:** Militar muestra unidades y frentes; Industria muestra únicamente instalaciones y niveles.
+- **Política más dinámica:** el rendimiento y la ganancia de escaños generan capital político. Las opciones económicas de centro-derecha reciben una ventaja moderada cuando crecimiento e industria funcionan bien.
+- **Decisiones con activos físicos:** vivienda, sanidad, educación, energía, logística e industria crean o amplían instalaciones. Se añaden siete decisiones estructurales.
+- **Interfaz revisada:** costes de ampliación visibles, cartera propia en Bolsa, industrias desbloqueadas en cada tecnología, Sala de Guerra ampliada y Eventos limitado a asuntos importantes o accionables.
+
+### Calibración de conflictos
+
+El modelo utiliza una referencia de ocho conflictos entre Estados en 2025 y ponderaciones regionales de UCDP/ACLED y fragilidad territorial del Banco Mundial. No intenta reproducir acontecimientos concretos: usa esas magnitudes para evitar tanto un mundo inmóvil como guerras continuas.
+
+Fuentes de calibración:
+
+- Uppsala Conflict Data Program, recuento 2025: <https://www.uu.se/en/press/press-releases/2026/2026-06-09-ucdp-record-number-of-conflicts-between-states>
+- ACLED Conflict Index: <https://acleddata.com/report/conflict-index-results-december-2024>
+- Banco Mundial, clasificación de situaciones frágiles y afectadas por conflictos: <https://www.worldbank.org/en/topic/fragilityconflictviolence/brief/classification-of-fragile-and-conflict-affected-situations>
 
 ## Sistemas de Alpha v1.6 conservados
 
@@ -81,7 +99,7 @@ El panel político incorpora doce decisiones con coste presupuestario, capital p
 - 62 tecnologías.
 - 176 empresas simuladas en Bolsa.
 - Producción y consumo de recursos.
-- Comercio marítimo animado.
+- Comercio marítimo y terrestre animado.
 - Producción militar por lotes x1, x10, x100 y x1000.
 - Movimiento, despliegue, invasión y anexión territorial.
 - Parlamento semicircular, elecciones y coaliciones.
@@ -115,7 +133,7 @@ Después abre `http://localhost:8000`.
 
 ## GitHub Pages
 
-1. Descomprime `NEXUS_Global_Alpha_v1.7_GitHub.zip`.
+1. Descomprime `NEXUS_Global_Alpha_v1.8_GitHub.zip`.
 2. Sube **todos los archivos y carpetas interiores** a la raíz del repositorio.
 3. Activa `Settings → Pages → Deploy from a branch → main → / (root)`.
 4. Espera al despliegue y realiza una recarga forzada.
@@ -124,7 +142,7 @@ El ZIP ya tiene `index.html` en la raíz. GitHub no descomprime ZIP automáticam
 
 ## Guardados
 
-Alpha v1.7 utiliza la clave `nexus_alpha_v1_7_save` y puede migrar guardados anteriores. Para una prueba completamente limpia, usa **Reiniciar campaña** o borra el almacenamiento local del sitio.
+Alpha v1.8 utiliza la clave `nexus_alpha_v1_8_save` y migra guardados v1.7 y anteriores. Para una prueba completamente limpia, usa **Reiniciar campaña** o borra el almacenamiento local del sitio.
 
 ## Nota de simulación
 

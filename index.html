@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#06111c">
-  <title>NEXUS Global · Alpha v1.7</title>
+  <title>NEXUS Global · Alpha v1.8</title>
   <meta name="description" content="Simulador geopolítico, económico y militar con mapa mundial real, 197 países y simulación diaria indefinida, sala de guerra y control corporativo.">
-  <link rel="stylesheet" href="css/styles.css?v=1.7">
+  <link rel="stylesheet" href="css/styles.css?v=1.8">
 </head>
 <body>
   <div id="bootLoader" class="boot-loader">
@@ -21,7 +21,7 @@
 
   <div id="startOverlay" class="start-overlay">
     <div class="start-card">
-      <div class="start-brand"><span>N</span><div><strong>NEXUS GLOBAL</strong><small>ALPHA v1.7 · SOVEREIGN WORLD</small></div></div>
+      <div class="start-brand"><span>N</span><div><strong>NEXUS GLOBAL</strong><small>ALPHA v1.8 · SOVEREIGN WORLD</small></div></div>
       <div class="start-copy">
         <span class="eyebrow">Campaña global · 1 de enero de 2028</span>
         <h1>Controla cualquier Estado del mundo</h1>
@@ -36,7 +36,7 @@
         <select id="startCountrySelect" aria-label="País inicial"></select>
       </label>
       <div class="scenario-features">
-        <span>🌍 197 países</span><span>🗺️ Mundo + comunidades</span><span>🏭 Empleo y producción</span><span>📈 176 cotizadas</span><span>🚢 Comercio marítimo</span><span>🔬 62 tecnologías</span>
+        <span>🌍 197 países</span><span>🗺️ Regiones reales</span><span>🏗️ Reconstrucción</span><span>📈 176 cotizadas</span><span>🚢🚚 Logística visible</span><span>🔬 I+D proporcional</span>
       </div>
       <div class="start-actions">
         <button id="startCampaignBtn" class="primary-btn large">Iniciar campaña</button>
@@ -49,7 +49,7 @@
 
   <div class="game-shell">
     <header class="topbar">
-      <div class="brand-block"><div class="brand-mark">N</div><div><strong>NEXUS GLOBAL</strong><small>ALPHA v1.7</small></div></div>
+      <div class="brand-block"><div class="brand-mark">N</div><div><strong>NEXUS GLOBAL</strong><small>ALPHA v1.8</small></div></div>
       <div class="top-kpis">
         <div><i>🪙</i><span>Tesorería</span><b id="topTreasury">—</b></div>
         <div><i>💶</i><span>PIB</span><b id="topGDP">—</b></div>
@@ -97,7 +97,7 @@
             <div><span class="eyebrow">MAPA GEOPOLÍTICO MUNDIAL</span><b id="mapTitle">Fronteras, instalaciones, unidades y guerras</b></div>
             <div class="map-toolbar">
               <select id="countrySelect" aria-label="Seleccionar país"></select>
-              <button data-map-layer="political" class="active">Político</button><button data-map-layer="economy">PIB</button><button data-map-layer="military">Militar</button><button data-map-layer="technology">Tecnología</button><button data-map-layer="stability">Estabilidad</button>
+              <button data-map-layer="political" class="active">Político</button><button data-map-layer="economy">PIB</button><button data-map-layer="military">Militar</button><button data-map-layer="industry">Industria</button><button data-map-layer="technology">Tecnología</button><button data-map-layer="stability">Estabilidad</button>
             </div>
           </header>
           <div class="map-viewport">
@@ -129,21 +129,22 @@
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
   <div id="modalBackdrop" class="modal-backdrop" hidden><section class="modal-card" role="dialog" aria-modal="true"><header><h2 id="modalTitle">Modal</h2><button id="closeModalBtn">×</button></header><div id="modalContent" class="modal-content"></div></section></div>
 
-  <script src="js/polyfills.js?v=1.7"></script>
-  <script src="js/world-data.js?v=1.7"></script>
-  <script src="js/data.js?v=1.7"></script>
-  <script src="js/catalog.js?v=1.7"></script>
-  <script src="js/politics.js?v=1.7"></script>
-  <script src="js/economy.js?v=1.7"></script>
-  <script src="js/simulation-plus.js?v=1.7"></script>
-  <script src="js/deep-systems.js?v=1.7"></script>
-  <script src="js/alpha-v13.js?v=1.7"></script>
-  <script src="js/alpha-v14.js?v=1.7"></script>
-  <script src="js/alpha-v15.js?v=1.7"></script>
-  <script src="js/alpha-v16.js?v=1.7"></script>
-  <script src="js/alpha-v17.js?v=1.7"></script>
-  <script src="js/map.js?v=1.7"></script>
-  <script src="js/ui.js?v=1.7"></script>
-  <script src="js/app.js?v=1.7"></script>
+  <script src="js/polyfills.js?v=1.8"></script>
+  <script src="js/world-data.js?v=1.8"></script>
+  <script src="js/data.js?v=1.8"></script>
+  <script src="js/catalog.js?v=1.8"></script>
+  <script src="js/politics.js?v=1.8"></script>
+  <script src="js/economy.js?v=1.8"></script>
+  <script src="js/simulation-plus.js?v=1.8"></script>
+  <script src="js/deep-systems.js?v=1.8"></script>
+  <script src="js/alpha-v13.js?v=1.8"></script>
+  <script src="js/alpha-v14.js?v=1.8"></script>
+  <script src="js/alpha-v15.js?v=1.8"></script>
+  <script src="js/alpha-v16.js?v=1.8"></script>
+  <script src="js/alpha-v17.js?v=1.8"></script>
+  <script src="js/alpha-v18.js?v=1.8"></script>
+  <script src="js/map.js?v=1.8"></script>
+  <script src="js/ui.js?v=1.8"></script>
+  <script src="js/app.js?v=1.8"></script>
 </body>
 </html>

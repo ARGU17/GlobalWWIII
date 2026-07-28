@@ -1,6 +1,6 @@
-# Subir NEXUS Global Alpha v1.7 a GitHub Pages
+# Subir NEXUS Global Alpha v1.8 a GitHub Pages
 
-1. Descarga y descomprime `NEXUS_Global_Alpha_v1.7_GitHub.zip`.
+1. Descarga y descomprime `NEXUS_Global_Alpha_v1.8_GitHub.zip`.
 2. Abre la carpeta descomprimida.
 3. Selecciona **todos los archivos y carpetas interiores**.
 4. Súbelos a la raíz del repositorio.

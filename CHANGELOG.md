@@ -1,5 +1,29 @@
 # Changelog
 
+## Alpha v1.8
+
+- I+D mensual proporcional al presupuesto, educación, tecnología, universidades e instalaciones científicas.
+- Bonificación científica por población y capacidad absorbida tras anexiones.
+- Países anexionados consolidados bajo el vencedor y eliminados del directorio soberano.
+- Mercado interior automático al 100% para antiguos territorios conquistados.
+- Nombres administrativos reales para regiones estratégicas prioritarias.
+- Daños y reconstrucción regional integral, industrial, energética o de infraestructura.
+- Economía territorial dinámica al crear o ampliar empleo industrial.
+- Efectos mensuales reales de las asignaciones del presupuesto nacional.
+- Costes de mejora industrial visibles antes de confirmar.
+- Cartera de participaciones propias en Bolsa.
+- Amortización voluntaria de deuda y ahorro futuro de intereses.
+- IA de conflictos ponderada por riesgo, proximidad y relaciones con un límite realista de guerras.
+- Movimiento y tiempo de llegada visibles en ataques.
+- Capa Militar exclusiva y nueva capa Industria.
+- Rutas españolas repartidas por fachadas marítimas y transporte terrestre animado con camiones.
+- Tecnologías con industrias desbloqueadas o potenciadas.
+- Más decisiones nacionales con creación automática de activos.
+- Bonificación de capital político por resultados electorales y ajuste moderado de partidos de derechas.
+- Limpieza automática de tratados resueltos.
+- Sala de Guerra ampliada con sostenimiento, reservas, objetivos, daño y tiempos de marcha.
+- Eventos comerciales rutinarios ocultos; permanecen acontecimientos importantes y decisiones.
+
 ## Alpha v1.7
 
 - La anexión total absorbe de verdad todo el Estado derrotado y habilita la gestión de sus territorios.
