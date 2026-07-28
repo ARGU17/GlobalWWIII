@@ -1,6 +1,6 @@
 "use strict";
 
-/* NEXUS Global Alpha v1.8.1
+/* NEXUS Global Alpha v1.8.2
    Economía territorial dinámica, reconstrucción, I+D proporcional,
    anexión consolidada, IA geopolítica calibrada y logística visible.
 */
@@ -513,7 +513,7 @@
   }
 
   function ensureV18(state) {
-    state.version="1.8.1-alpha";
+    state.version="1.8.2-alpha";
     state.aiDirector||={};state.aiDirector.model="UCDP-ACLED realistic baseline";
     for(const c of state.countries){
       c.sovereign??=true;c.nationalDecisions||={};c.internalTradeNetworks||=[];
@@ -529,7 +529,7 @@
 
   function createInitialState(){
     const state=ensureV18(oldCreate());
-    E.pushEvent(state,"system","NEXUS Global Alpha v1.8.1","Controles de tiempo reparados y velocidades x16 y x32 activadas, junto con todas las mejoras de v1.8.");
+    E.pushEvent(state,"system","NEXUS Global Alpha v1.8.2","Cuentas locales, inicio de sesión y partidas separadas por comandante activadas, junto con todas las mejoras anteriores.");
     return state;
   }
 
@@ -553,7 +553,7 @@
       if(snap&&c.politics?.lastElectionDate&&c.politics.lastElectionDate!==snap.date)applyElectionCapital(c,snap.seats);
     }
     if((state.dayIndex||0)%7===0)runRealisticAI(state);
-    decorateTradeRoutes(state);cleanSettlements(state);state.version="1.8.1-alpha";
+    decorateTradeRoutes(state);cleanSettlements(state);state.version="1.8.2-alpha";
     return summary;
   }
 
