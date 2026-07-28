@@ -11,7 +11,7 @@ if (!global.performance) global.performance = { now: () => Date.now() };
 
 for (const file of [
   "world-data.js","data.js","catalog.js","politics.js","economy.js",
-  "simulation-plus.js","deep-systems.js","alpha-v13.js","alpha-v14.js","alpha-v15.js","alpha-v16.js","alpha-v17.js"
+  "simulation-plus.js","deep-systems.js","alpha-v13.js","alpha-v14.js","alpha-v15.js","alpha-v16.js","alpha-v17.js","alpha-v18.js"
 ]) {
   vm.runInThisContext(fs.readFileSync(path.join(root,"js",file),"utf8"), { filename:file });
 }
@@ -21,7 +21,7 @@ const C = global.NEXUS_CATALOG;
 const assert = (condition,message) => { if (!condition) throw new Error(message); };
 
 const state = E.createInitialState();
-assert(state.version === "1.7-alpha", "Versión incorrecta");
+assert(state.version === "1.8-alpha", "Versión incorrecta");
 assert(state.countries.length === 197, "Deben existir 197 países");
 assert(state.companies.length >= 170, "Bolsa insuficientemente ampliada");
 assert(C.buildings.length >= 40, "Catálogo industrial insuficiente");
@@ -178,6 +178,39 @@ for (const def of C.buildings) {
   const extreme=E.coalitionCompatibility(186),near=E.coalitionCompatibility(15);
   assert(extreme.chance===0,"Los extremos opuestos no deben coaligarse");
   assert(near.chance>=.8,"Partidos ideológicamente próximos deben negociar con facilidad");
+}
+
+// Alpha v1.8: I+D proporcional, nombres reales, deuda, presupuesto y reconstrucción.
+{
+  const s=E.createInitialState(),c=E.getCountry(s,"ESP");
+  const baseRate=E.calculateResearchRate(s,c);c.budgets.research+=4;
+  const highRate=E.calculateResearchRate(s,c);assert(highRate>baseRate+4,"La inversión adicional no aumenta proporcionalmente la generación de I+D");
+  const techBefore=c.systems.technology,militaryBefore=c.systems.military,energyBefore=c.systems.energy;
+  c.budgets.research=12;c.budgets.defense=10;c.budgets.infrastructure=10;s.date="2028-01-31";E.tickDay(s);
+  assert(c.systems.technology>techBefore&&c.systems.military>militaryBefore&&c.systems.energy>energyBefore,"El presupuesto no modifica las capacidades nacionales");
+
+  const usa=E.getCountryRegions(s,"USA").map(r=>r.name).join(" · "),col=E.getCountryRegions(s,"COL").map(r=>r.name).join(" · "),mar=E.getCountryRegions(s,"MAR").map(r=>r.name).join(" · ");
+  assert(/Austin|Louisiana/.test(usa)&&/Medellín/.test(col)&&/Tánger/.test(mar),"Faltan nombres territoriales reales solicitados");
+
+  c.economy.treasury=100000;const debtBefore=c.economy.debtRatio,interestBefore=c.economy.interestRate;
+  assert(E.payDownDebt(s,5).ok&&c.economy.debtRatio<debtBefore&&c.economy.interestRate<interestBefore,"La amortización de deuda no mejora deuda e intereses");
+
+  const facility=E.facilitiesForCountry(s,"ESP")[0];assert(E.upgradeCost(facility)>0,"No se expone el coste de mejora industrial");
+  assert(E.nationalDecisionDefinitions.some(x=>x.id==="hospitalNetwork"),"No se añadieron decisiones nacionales v1.8");
+}
+
+// La anexión v1.8 consolida diplomacia, mercado interior y reconstrucción.
+{
+  const s=E.createInitialState(),a=E.getCountry(s,"ESP"),d=E.getCountry(s,"AND");s.controlledCountryId="ESP";a.relations.AND=0;d.relations.ESP=0;a.militaryReadiness=99;
+  assert(E.warAction(s,"AND","declare").ok,"No se declaró la guerra de reconstrucción");const w=s.wars.find(x=>!x.ended&&x.defender==="AND");w.warScore=90;w.territoryControl=90;
+  assert(E.demandSurrender(s,w.id).ok&&E.annexCountry(s,w.id).ok,"No se completó la anexión v1.8");
+  const annexed=a.annexedCountries.at(-1),region=E.getRegion(s,"ESP",annexed.regions[0]);
+  assert(d.sovereign===false&&a.internalTradeNetworks.some(x=>x.sourceCountryId==="AND"&&x.efficiency===100),"El Estado anexionado no desaparece o no activa comercio interior");
+  assert(region.reconstruction?.damage>0,"La región conquistada no tiene daños reconstruibles");
+  a.economy.treasury=100000;assert(E.reconstructRegion(s,region.id,"all").ok,"No se inició la reconstrucción");
+  const q=a.productionQueue.find(x=>x.kind==="reconstructionV18"&&x.regionId===region.id);q.daysRemaining=1;E.tickDay(s);
+  assert(region.reconstruction.status==="complete","La reconstrucción no devuelve la región al tejido productivo");
+  assert(w.settlement?.resolved===true&&!s.wars.some(x=>x.id===w.id&&x.ended&&!x.settlement?.resolved),"El tratado quedó pendiente tras la anexión");
 }
 
 console.log(JSON.stringify({
