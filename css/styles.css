@@ -139,3 +139,13 @@
 .decision-options button b{font-size:9px}
 .decision-options button small{color:#86aabd;font-size:7px;white-space:normal}
 @media(max-width:650px){.action-message-grid{grid-template-columns:1fr}}
+/* ===== Alpha v1.8 · reconstrucción, presupuesto y logística ===== */
+.budget-impact{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+.debt-actions,.reconstruction-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.reconstruction-card{border-color:rgba(255,190,78,.45);background:linear-gradient(135deg,rgba(255,176,55,.09),rgba(18,42,57,.86))}
+.reconstruction-card p{color:var(--muted)}
+.owned-holdings{border-color:rgba(255,218,95,.32)}
+.tech-unlocks{display:flex;flex-direction:column;gap:4px;margin:10px 0;padding:9px;border:1px solid rgba(84,211,239,.2);border-radius:8px;background:rgba(31,103,133,.12)}
+.tech-unlocks span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.tech-unlocks b{font-size:12px;color:#bcefff}
+@media(max-width:1050px){.budget-impact{grid-template-columns:repeat(2,minmax(0,1fr))}}
