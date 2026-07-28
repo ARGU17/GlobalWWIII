@@ -8,7 +8,7 @@ for(const file of ["world-data.js","data.js","catalog.js","politics.js","economy
   vm.runInThisContext(fs.readFileSync(path.join(root,"js",file),"utf8"),{filename:file});
 }
 const E=NEXUS_ECONOMY,assert=(v,m)=>{if(!v)throw new Error(m)},s=E.createInitialState(),c=E.getCountry(s,"ESP");
-assert(s.version==="1.8.1-alpha","Versión incorrecta");
+assert(s.version==="1.8.2-alpha","Versión incorrecta");
 const low=E.calculateResearchRate(s,c);c.budgets.research+=5;const high=E.calculateResearchRate(s,c);
 assert(high>low,"I+D no responde a la inversión");
 assert(/Austin|Louisiana/.test(E.getCountryRegions(s,"USA").map(r=>r.name).join(" ")),"Regiones de EEUU sin nombres reales");

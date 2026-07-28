@@ -38,7 +38,7 @@ if(!politics.includes("PODER DE LA COALICIÓN")||!politics.includes("50% · MAYO
 state.activePanel="stock";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("176")||!get("mainPanel").innerHTML.includes("Mis participaciones"))throw new Error("Bolsa ampliada o cartera propia no visible");
 
 state.activePanel="economy";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("Gestión de deuda")||!get("mainPanel").innerHTML.includes("I+D prevista"))throw new Error("Economía v1.8 incompleta");
-state.activePanel="settings";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("x16")||!get("mainPanel").innerHTML.includes("x32"))throw new Error("Velocidades v1.8.1 ausentes");
+state.activePanel="settings";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("x16")||!get("mainPanel").innerHTML.includes("x32"))throw new Error("Velocidades rápidas ausentes");
 state.activePanel="technology";NEXUS_UI.renderAll();if(!get("mainPanel").innerHTML.includes("Desbloquea / potencia"))throw new Error("La tecnología no explica qué industria habilita");
 
 state.activePanel="diplomacy";NEXUS_UI.renderAll();const diplomacy=get("mainPanel").innerHTML;if(!diplomacy.includes("Afganistán")||!diplomacy.includes("Zimbabue"))throw new Error("El directorio diplomático no contiene todos los países");
