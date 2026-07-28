@@ -1,8 +1,8 @@
 "use strict";
 
 (() => {
-  const SAVE_KEY="nexus_alpha_v1_7_save";
-  const LEGACY_KEYS=["nexus_alpha_v1_6_save","nexus_alpha_v1_5_save","nexus_alpha_v1_4_save","nexus_alpha_v1_3_save","nexus_alpha_v1_2_save","nexus_alpha_v1_1_save","nexus_alpha_v1_0_save"];
+  const SAVE_KEY="nexus_alpha_v1_8_save";
+  const LEGACY_KEYS=["nexus_alpha_v1_7_save","nexus_alpha_v1_6_save","nexus_alpha_v1_5_save","nexus_alpha_v1_4_save","nexus_alpha_v1_3_save","nexus_alpha_v1_2_save","nexus_alpha_v1_1_save","nexus_alpha_v1_0_save"];
   const DAY_MS=10000;
   let state,timer=null;
 
@@ -27,7 +27,7 @@
 
   function createActions(){return{
     setPanel,setMapLayer,selectCountry,selectRegion,toggleRun,setSpeed,stepDay,
-    updateBudget,adjustBudget,updateTaxRate,investRegion,buildInRegion,upgradeBuilding,expandRegionSlots,
+    updateBudget,adjustBudget,updateTaxRate,investRegion,buildInRegion,upgradeBuilding,expandRegionSlots,reconstructRegion,reconstructCountry,payDownDebt,
     queueUnit,setUnitBatch,deployUnit,moveUnit,attackRegion,attackUnit,attackCountry,splitUnit,startProject,buyShares,sellShares,takeover,
     diplomacy,operation,war,nuclearAlert,startResearch,enactPolicy,setDoctrine,
     takeControl,changeRegime,appointParty,callElection,negotiateCoalition,removeCoalitionParty,setCompanyPolicy,enactNationalDecision,demandSurrender,annexOccupiedRegions,annexCountry,signPeace,resolveDecision,
@@ -48,7 +48,7 @@
   function rebind(){bindState()}
 
   function setPanel(panel){const allowed=["overview","economy","regions","industry","stock","politics","technology","military","diplomacy","intelligence","objectives","events","settings"];state.activePanel=allowed.includes(panel)?panel:"overview";if(panel==="regions"){state.mapMode="regions";const countryId=state.selectedCountryId||state.controlledCountryId,regions=NEXUS_ECONOMY.getCountryRegions?.(state,countryId)||[];if(!regions.some(r=>r.id===state.selectedRegionId))state.selectedRegionId=regions[0]?.id||null;NEXUS_MAP_ENGINE.focusCountry(countryId)}else state.mapMode="world";NEXUS_UI.renderAll();NEXUS_MAP_ENGINE.render()}
-  function setMapLayer(layer){if(!["political","economy","military","technology","stability"].includes(layer))return;state.mapLayer=layer;NEXUS_MAP_ENGINE.render();NEXUS_UI.renderAll()}
+  function setMapLayer(layer){if(!["political","economy","military","industry","technology","stability"].includes(layer))return;state.mapLayer=layer;NEXUS_MAP_ENGINE.render();NEXUS_UI.renderAll()}
   function selectCountry(countryId){const target=state.countries.find(c=>c.id===countryId);if(!target)return;state.selectedCountryId=target.annexedBy||target.id;state.mapMode="world";NEXUS_MAP_ENGINE.render();NEXUS_UI.renderAll()}
   function selectRegion(countryId,regionId){if(regionId==null){regionId=countryId;countryId=state.selectedCountryId||state.controlledCountryId}const regions=NEXUS_ECONOMY.getCountryRegions?.(state,countryId)||[];if(!regions.some(r=>r.id===regionId))return;state.selectedRegionId=regionId;state.selectedCountryId=countryId;state.mapMode="regions";NEXUS_MAP_ENGINE.focusRegion(countryId,regionId);NEXUS_UI.renderAll()}
 
@@ -66,7 +66,7 @@
   function syncLoop(){stopLoop();if(!state.running)return;if(!state.simulation?.clockAnchor)resumeClock();scheduleNextTick()}
   function scheduleNextTick(){if(!state.running)return;timer=setTimeout(()=>{timer=null;stepDay();if(state.running)scheduleNextTick()},DAY_MS/state.speed)}
   function stopLoop(){if(timer)clearTimeout(timer);timer=null}
-  function stepDay(){let summary;try{summary=NEXUS_ECONOMY.tickDay(state)}catch(error){console.error("Tick recuperado por app.js",error);summary=NEXUS_ECONOMY.forceAdvanceDate?.(state)||null;NEXUS_UI.toast("Se aisló un error del motor; la cronología continúa.","warning")}resetClock();if(state.settings.autosave&&state.dayIndex%7===0)saveState(false);NEXUS_MAP_ENGINE.render();NEXUS_UI.renderAll();if(summary?.budget?.monthlyBalance<-8)NEXUS_UI.toast("El déficit mensual está elevando la deuda.","warning");return summary}
+  function stepDay(){const selectedCountryId=state.selectedCountryId,selectedRegionId=state.selectedRegionId,mapCenter=Array.isArray(state.mapCenter)?[...state.mapCenter]:null,mapZoom=state.mapZoom;let summary;try{summary=NEXUS_ECONOMY.tickDay(state)}catch(error){console.error("Tick recuperado por app.js",error);summary=NEXUS_ECONOMY.forceAdvanceDate?.(state)||null;NEXUS_UI.toast("Se aisló un error del motor; la cronología continúa.","warning")}const selectedCountry=state.countries.find(c=>c.id===selectedCountryId),ownerId=selectedCountry?.annexedBy||selectedCountryId;if(state.countries.some(c=>c.id===ownerId&&c.sovereign!==false))state.selectedCountryId=ownerId;if(selectedRegionId&&NEXUS_ECONOMY.getRegion?.(state,null,selectedRegionId))state.selectedRegionId=selectedRegionId;if(mapCenter)state.mapCenter=mapCenter;if(Number.isFinite(mapZoom))state.mapZoom=mapZoom;resetClock();if(state.settings.autosave&&state.dayIndex%7===0)saveState(false);NEXUS_MAP_ENGINE.render();NEXUS_UI.renderAll();if(summary?.budget?.monthlyBalance<-8)NEXUS_UI.toast("El déficit mensual está elevando la deuda.","warning");return summary}
 
   function updateBudget(key,value){NEXUS_ECONOMY.updateBudget(state,key,value);NEXUS_UI.renderAll()}
   function adjustBudget(key,delta){result(NEXUS_ECONOMY.adjustBudget(state,key,delta));NEXUS_UI.renderAll()}
@@ -75,6 +75,9 @@
   function buildInRegion(buildingId){result(NEXUS_ECONOMY.buildInRegion(state,state.selectedRegionId,buildingId));refresh()}
   function upgradeBuilding(id){result(NEXUS_ECONOMY.upgradeBuilding(state,state.selectedRegionId,id));refresh()}
   function expandRegionSlots(){result(NEXUS_ECONOMY.expandRegionSlots(state,state.controlledCountryId,state.selectedRegionId));refresh()}
+  function reconstructRegion(regionId,scope){result(NEXUS_ECONOMY.reconstructRegion(state,regionId||state.selectedRegionId,scope||"all"));refresh()}
+  function reconstructCountry(countryId){result(NEXUS_ECONOMY.reconstructCountry(state,countryId));refresh()}
+  function payDownDebt(share){result(NEXUS_ECONOMY.payDownDebt(state,share));refresh()}
   function queueUnit(typeId,quantity){result(NEXUS_ECONOMY.queueUnitBatch(state,typeId,state.selectedRegionId,quantity||state.unitBatch||1));refresh()}
   function setUnitBatch(value){result(NEXUS_ECONOMY.changeUnitBatch(state,value));NEXUS_UI.renderAll()}
   function deployUnit(unitId,regionId,countryId){result(NEXUS_ECONOMY.deployUnit(state,unitId,regionId,countryId||state.controlledCountryId));refresh()}
@@ -114,7 +117,7 @@
   function loadState(){const raw=storageGet(SAVE_KEY)||LEGACY_KEYS.map(storageGet).find(Boolean);if(!raw)return null;try{return JSON.parse(raw)}catch(_){return null}}
   function manualLoad(){const loaded=normalizeLoadedState(loadState());if(!loaded){NEXUS_UI.toast("No hay guardado compatible.","warning");return}state=loaded;rebind();NEXUS_UI.toast("Partida cargada.","success")}
   function normalizeLoadedState(candidate){if(!candidate||typeof candidate!=="object"||!Array.isArray(candidate.countries))return null;try{return NEXUS_ECONOMY.hydrateState(candidate)}catch(error){console.warn("Guardado incompatible",error);return null}}
-  function exportSave(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`nexus-v1.7-${state.date}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);NEXUS_UI.toast("Guardado exportado.","success")}
+  function exportSave(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`nexus-v1.8-${state.date}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);NEXUS_UI.toast("Guardado exportado.","success")}
   function importSave(raw){try{const normalized=normalizeLoadedState(JSON.parse(raw));if(!normalized)throw new Error("Formato incompatible");state=normalized;rebind();NEXUS_UI.closeModal();NEXUS_UI.toast("Partida importada.","success")}catch(error){NEXUS_UI.toast(`Importación fallida: ${error.message}`,"error")}}
   function reset(){if(!confirm("¿Reiniciar la campaña?"))return;storageRemove(SAVE_KEY);for(const key of LEGACY_KEYS)storageRemove(key);state=NEXUS_ECONOMY.createInitialState();rebind();NEXUS_UI.toast("Campaña reiniciada.","success")}
   function updateSetting(key,value){state.settings[key]=value;document.body.classList.toggle("reduced-motion",state.settings.reducedMotion);document.body.classList.toggle("dense-ui",state.settings.denseUI);NEXUS_UI.renderAll();NEXUS_MAP_ENGINE.render()}
