@@ -1,8 +1,15 @@
-# NEXUS Global — Alpha v1.8
+# NEXUS Global — Alpha v1.8.1
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
 
-## Cambios principales de Alpha v1.8
+## Corrección Alpha v1.8.1
+
+- **Controles temporales reparados:** iniciar, pausar, avanzar un día y cambiar de velocidad siguen respondiendo después de comenzar o cargar una campaña.
+- **Cambio de ritmo continuo:** al seleccionar otra velocidad se conserva el progreso del día actual y se recalcula únicamente el tiempo restante.
+- **Nuevas velocidades:** se incorporan `x16` y `x32`, además de `x1`, `x2` y `x4`.
+- **Compatibilidad:** los guardados de v1.8 y de versiones anteriores se migran automáticamente.
+
+## Cambios principales heredados de Alpha v1.8
 
 - **Anexión consolidada:** el Estado derrotado deja de figurar como soberano en mapa, selectores y Diplomacia. Sus regiones, población, PIB, deuda, Tesoro, empresas, unidades, recursos e instalaciones pasan al vencedor, que obtiene un mercado interior automático al 100% de eficiencia.
 - **Reconstrucción de posguerra:** cada territorio absorbido conserva daños de infraestructura, energía e industria. Se puede reconstruir una región por partes, ejecutar un plan integral o responder desde el Centro de decisiones.
@@ -133,7 +140,7 @@ Después abre `http://localhost:8000`.
 
 ## GitHub Pages
 
-1. Descomprime `NEXUS_Global_Alpha_v1.8_GitHub.zip`.
+1. Descomprime `NEXUS_Global_Alpha_v1.8.1_GitHub.zip`.
 2. Sube **todos los archivos y carpetas interiores** a la raíz del repositorio.
 3. Activa `Settings → Pages → Deploy from a branch → main → / (root)`.
 4. Espera al despliegue y realiza una recarga forzada.
@@ -142,7 +149,7 @@ El ZIP ya tiene `index.html` en la raíz. GitHub no descomprime ZIP automáticam
 
 ## Guardados
 
-Alpha v1.8 utiliza la clave `nexus_alpha_v1_8_save` y migra guardados v1.7 y anteriores. Para una prueba completamente limpia, usa **Reiniciar campaña** o borra el almacenamiento local del sitio.
+Alpha v1.8.1 utiliza la clave `nexus_alpha_v1_8_1_save` y migra guardados v1.8 y anteriores. Para una prueba completamente limpia, usa **Reiniciar campaña** o borra el almacenamiento local del sitio.
 
 ## Nota de simulación
 

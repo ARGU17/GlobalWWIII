@@ -1,4 +1,4 @@
-# Validación técnica — Alpha v1.8
+# Validación técnica — Alpha v1.8.1
 
 ## Validaciones ejecutadas
 
@@ -10,7 +10,7 @@
 
 ## Resultado del modelo
 
-- Versión: `1.8-alpha`.
+- Versión: `1.8.1-alpha`.
 - 197 países.
 - 176 empresas.
 - 42 instalaciones.
@@ -74,7 +74,10 @@ También se verificó:
 
 Se sirvió el proyecto mediante HTTP local y se verificó en el navegador integrado:
 
-- Arranque completo de Alpha v1.8 sin errores de consola.
+- Arranque completo de Alpha v1.8.1 sin errores de consola.
+- Inicio, pausa y avance manual operativos tras comenzar la campaña.
+- Cambios x1, x2, x4, x16 y x32 aplicados durante la simulación.
+- Conservación del progreso parcial del día al cambiar de velocidad.
 - Capa Industria con título y estado activo correctos.
 - Capa Militar con título y estado activo correctos.
 - Economía con I+D prevista y Gestión de deuda.
@@ -90,6 +93,7 @@ node --check js/ui.js
 node --check js/map.js
 node --check js/app.js
 node tests/v18-validation.js
+node tests/v181-time-validation.js
 node tests/ui-render-validation.js
 node tests/model-validation.js
 git diff --check

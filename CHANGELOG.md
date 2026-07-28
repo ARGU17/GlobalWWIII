@@ -1,5 +1,14 @@
 # Changelog
 
+## Alpha v1.8.1
+
+- Corregidos los controles de iniciar, pausar, velocidad y avance manual después de comenzar o cargar una campaña.
+- Delegación estable de los botones temporales para que sigan operativos aunque la interfaz se vuelva a enlazar.
+- Conservación de la fracción del día al cambiar de velocidad.
+- Reprogramación del temporizador usando el tiempo real restante del día simulado.
+- Añadidas velocidades x16 y x32.
+- Nueva clave de guardado con migración automática desde v1.8 y anteriores.
+
 ## Alpha v1.8
 
 - I+D mensual proporcional al presupuesto, educación, tecnología, universidades e instalaciones científicas.
