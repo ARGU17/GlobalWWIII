@@ -1,9 +1,10 @@
 "use strict";
 
 (() => {
-  const SAVE_KEY="nexus_alpha_v1_8_save";
-  const LEGACY_KEYS=["nexus_alpha_v1_7_save","nexus_alpha_v1_6_save","nexus_alpha_v1_5_save","nexus_alpha_v1_4_save","nexus_alpha_v1_3_save","nexus_alpha_v1_2_save","nexus_alpha_v1_1_save","nexus_alpha_v1_0_save"];
+  const SAVE_KEY="nexus_alpha_v1_8_1_save";
+  const LEGACY_KEYS=["nexus_alpha_v1_8_save","nexus_alpha_v1_7_save","nexus_alpha_v1_6_save","nexus_alpha_v1_5_save","nexus_alpha_v1_4_save","nexus_alpha_v1_3_save","nexus_alpha_v1_2_save","nexus_alpha_v1_1_save","nexus_alpha_v1_0_save"];
   const DAY_MS=10000;
+  const SPEED_OPTIONS=[1,2,4,16,32];
   let state,timer=null;
 
   const storageGet=key=>{try{return localStorage.getItem(key)}catch(_){return null}};
@@ -21,7 +22,7 @@
   }
 
   function bindState(){
-    stopLoop();state=NEXUS_ECONOMY.hydrateState(state);window.NEXUS_STATE=state;window.NEXUS_ACTIONS=createActions();
+    stopLoop();state=NEXUS_ECONOMY.hydrateState(state);state.speed=normalizeSpeed(state.speed);window.NEXUS_STATE=state;window.NEXUS_ACTIONS=createActions();
     NEXUS_UI.initialize(state,window.NEXUS_ACTIONS);NEXUS_MAP_ENGINE.initialize(state,{selectCountry,selectRegion});syncLoop();
   }
 
@@ -61,10 +62,11 @@
   function freezeClock(){state.simulation ||= {};state.simulation.clockFraction=currentClockFraction();state.simulation.clockAnchor=null}
   function resumeClock(){state.simulation ||= {};state.simulation.clockAnchor=Date.now()}
   function resetClock(){state.simulation ||= {};state.simulation.clockFraction=0;state.simulation.clockAnchor=state.running?Date.now():null}
+  function normalizeSpeed(speed){const value=Number(speed);return SPEED_OPTIONS.includes(value)?value:1}
   function toggleRun(){if(state.running){freezeClock();state.running=false}else{state.running=true;resumeClock()}syncLoop();NEXUS_UI.renderAll()}
-  function setSpeed(speed){const wasRunning=state.running;if(wasRunning)freezeClock();state.speed=[1,2,4].includes(Number(speed))?Number(speed):1;if(wasRunning)resumeClock();syncLoop();NEXUS_UI.renderAll()}
+  function setSpeed(speed){const next=normalizeSpeed(speed),wasRunning=state.running;if(wasRunning)freezeClock();state.speed=next;if(wasRunning)resumeClock();syncLoop();NEXUS_UI.renderAll()}
   function syncLoop(){stopLoop();if(!state.running)return;if(!state.simulation?.clockAnchor)resumeClock();scheduleNextTick()}
-  function scheduleNextTick(){if(!state.running)return;timer=setTimeout(()=>{timer=null;stepDay();if(state.running)scheduleNextTick()},DAY_MS/state.speed)}
+  function scheduleNextTick(){if(!state.running)return;const remaining=Math.max(0,1-currentClockFraction()),delay=Math.max(16,remaining*DAY_MS/normalizeSpeed(state.speed));timer=setTimeout(()=>{timer=null;stepDay();if(state.running)scheduleNextTick()},delay)}
   function stopLoop(){if(timer)clearTimeout(timer);timer=null}
   function stepDay(){const selectedCountryId=state.selectedCountryId,selectedRegionId=state.selectedRegionId,mapCenter=Array.isArray(state.mapCenter)?[...state.mapCenter]:null,mapZoom=state.mapZoom;let summary;try{summary=NEXUS_ECONOMY.tickDay(state)}catch(error){console.error("Tick recuperado por app.js",error);summary=NEXUS_ECONOMY.forceAdvanceDate?.(state)||null;NEXUS_UI.toast("Se aisló un error del motor; la cronología continúa.","warning")}const selectedCountry=state.countries.find(c=>c.id===selectedCountryId),ownerId=selectedCountry?.annexedBy||selectedCountryId;if(state.countries.some(c=>c.id===ownerId&&c.sovereign!==false))state.selectedCountryId=ownerId;if(selectedRegionId&&NEXUS_ECONOMY.getRegion?.(state,null,selectedRegionId))state.selectedRegionId=selectedRegionId;if(mapCenter)state.mapCenter=mapCenter;if(Number.isFinite(mapZoom))state.mapZoom=mapZoom;resetClock();if(state.settings.autosave&&state.dayIndex%7===0)saveState(false);NEXUS_MAP_ENGINE.render();NEXUS_UI.renderAll();if(summary?.budget?.monthlyBalance<-8)NEXUS_UI.toast("El déficit mensual está elevando la deuda.","warning");return summary}
 
@@ -117,7 +119,7 @@
   function loadState(){const raw=storageGet(SAVE_KEY)||LEGACY_KEYS.map(storageGet).find(Boolean);if(!raw)return null;try{return JSON.parse(raw)}catch(_){return null}}
   function manualLoad(){const loaded=normalizeLoadedState(loadState());if(!loaded){NEXUS_UI.toast("No hay guardado compatible.","warning");return}state=loaded;rebind();NEXUS_UI.toast("Partida cargada.","success")}
   function normalizeLoadedState(candidate){if(!candidate||typeof candidate!=="object"||!Array.isArray(candidate.countries))return null;try{return NEXUS_ECONOMY.hydrateState(candidate)}catch(error){console.warn("Guardado incompatible",error);return null}}
-  function exportSave(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`nexus-v1.8-${state.date}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);NEXUS_UI.toast("Guardado exportado.","success")}
+  function exportSave(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`nexus-v1.8.1-${state.date}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);NEXUS_UI.toast("Guardado exportado.","success")}
   function importSave(raw){try{const normalized=normalizeLoadedState(JSON.parse(raw));if(!normalized)throw new Error("Formato incompatible");state=normalized;rebind();NEXUS_UI.closeModal();NEXUS_UI.toast("Partida importada.","success")}catch(error){NEXUS_UI.toast(`Importación fallida: ${error.message}`,"error")}}
   function reset(){if(!confirm("¿Reiniciar la campaña?"))return;storageRemove(SAVE_KEY);for(const key of LEGACY_KEYS)storageRemove(key);state=NEXUS_ECONOMY.createInitialState();rebind();NEXUS_UI.toast("Campaña reiniciada.","success")}
   function updateSetting(key,value){state.settings[key]=value;document.body.classList.toggle("reduced-motion",state.settings.reducedMotion);document.body.classList.toggle("dense-ui",state.settings.denseUI);NEXUS_UI.renderAll();NEXUS_MAP_ENGINE.render()}
