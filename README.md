@@ -1,8 +1,18 @@
-# NEXUS Global — Alpha v1.8.1
+# NEXUS Global — Alpha v1.8.2
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
 
-## Corrección Alpha v1.8.1
+## Sistema de cuentas Alpha v1.8.2
+
+- **Crear cuenta e iniciar sesión:** acceso por usuario o correo, validación de credenciales y opción de mantener la sesión.
+- **Credenciales protegidas:** la contraseña se deriva con PBKDF2-SHA-256, 150.000 iteraciones y una sal aleatoria por cuenta; nunca se conserva en texto plano.
+- **Partidas separadas:** cada cuenta dispone de su propio guardado. El modo invitado mantiene un espacio independiente.
+- **Gestión de cuenta:** perfil visible desde el centro de mando, cambio de contraseña y cierre de sesión.
+- **Compatibilidad:** la primera cuenta que acceda puede migrar el guardado de v1.8.1 y versiones anteriores.
+
+> GitHub Pages es alojamiento estático. Por ello, estas cuentas son locales al navegador y dispositivo actuales: no existe sincronización remota ni recuperación por correo. Borrar los datos del sitio elimina las cuentas locales.
+
+## Corrección heredada de Alpha v1.8.1
 
 - **Controles temporales reparados:** iniciar, pausar, avanzar un día y cambiar de velocidad siguen respondiendo después de comenzar o cargar una campaña.
 - **Cambio de ritmo continuo:** al seleccionar otra velocidad se conserva el progreso del día actual y se recalcula únicamente el tiempo restante.
@@ -140,7 +150,7 @@ Después abre `http://localhost:8000`.
 
 ## GitHub Pages
 
-1. Descomprime `NEXUS_Global_Alpha_v1.8.1_GitHub.zip`.
+1. Descomprime `NEXUS_Global_Alpha_v1.8.2_GitHub.zip`.
 2. Sube **todos los archivos y carpetas interiores** a la raíz del repositorio.
 3. Activa `Settings → Pages → Deploy from a branch → main → / (root)`.
 4. Espera al despliegue y realiza una recarga forzada.
@@ -149,7 +159,7 @@ El ZIP ya tiene `index.html` en la raíz. GitHub no descomprime ZIP automáticam
 
 ## Guardados
 
-Alpha v1.8.1 utiliza la clave `nexus_alpha_v1_8_1_save` y migra guardados v1.8 y anteriores. Para una prueba completamente limpia, usa **Reiniciar campaña** o borra el almacenamiento local del sitio.
+Alpha v1.8.2 utiliza la clave base `nexus_alpha_v1_8_2_save`, añade el identificador de la cuenta activa y migra guardados de v1.8.1 y anteriores. **Reiniciar campaña** solo elimina la partida de la cuenta actual.
 
 ## Nota de simulación
 

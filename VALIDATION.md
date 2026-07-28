@@ -1,4 +1,4 @@
-# Validación técnica — Alpha v1.8.1
+# Validación técnica — Alpha v1.8.2
 
 ## Validaciones ejecutadas
 
@@ -10,7 +10,7 @@
 
 ## Resultado del modelo
 
-- Versión: `1.8.1-alpha`.
+- Versión: `1.8.2-alpha`.
 - 197 países.
 - 176 empresas.
 - 42 instalaciones.
@@ -59,6 +59,11 @@ Se renderizaron correctamente los 13 paneles:
 
 También se verificó:
 
+- Registro e inicio de sesión por usuario o correo.
+- Derivación PBKDF2-SHA-256 con sal aleatoria y ausencia de contraseña en texto plano.
+- Sesión persistente o temporal, modo invitado y guardados separados por cuenta.
+- Perfil, cambio de contraseña y cierre de sesión.
+
 - Sala de Guerra con teatros y operaciones.
 - Parlamento semicircular y Mesa de Coalición.
 - Directorio diplomático con países desde Afganistán hasta Zimbabue.
@@ -74,7 +79,7 @@ También se verificó:
 
 Se sirvió el proyecto mediante HTTP local y se verificó en el navegador integrado:
 
-- Arranque completo de Alpha v1.8.1 sin errores de consola.
+- Arranque completo de Alpha v1.8.2 sin errores de consola.
 - Inicio, pausa y avance manual operativos tras comenzar la campaña.
 - Cambios x1, x2, x4, x16 y x32 aplicados durante la simulación.
 - Conservación del progreso parcial del día al cambiar de velocidad.
@@ -89,11 +94,13 @@ Se sirvió el proyecto mediante HTTP local y se verificó en el navegador integr
 
 ```bash
 node --check js/alpha-v18.js
+node --check js/auth.js
 node --check js/ui.js
 node --check js/map.js
 node --check js/app.js
 node tests/v18-validation.js
 node tests/v181-time-validation.js
+node tests/v182-auth-validation.js
 node tests/ui-render-validation.js
 node tests/model-validation.js
 git diff --check

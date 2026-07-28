@@ -1,5 +1,14 @@
 # Changelog
 
+## Alpha v1.8.2
+
+- Añadidos registro, inicio de sesión por usuario o correo y sesión persistente opcional.
+- Contraseñas derivadas localmente mediante PBKDF2-SHA-256, 150.000 iteraciones y sal aleatoria individual.
+- Guardados independientes por cuenta, con migración de campañas anteriores.
+- Añadidos perfil de comandante, cambio de contraseña y cierre de sesión.
+- Añadido acceso como invitado con espacio de guardado separado.
+- Interfaz de acceso adaptable y aviso explícito sobre el alcance local de las cuentas en GitHub Pages.
+
 ## Alpha v1.8.1
 
 - Corregidos los controles de iniciar, pausar, velocidad y avance manual después de comenzar o cargar una campaña.
