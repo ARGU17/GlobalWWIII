@@ -21,7 +21,7 @@ const C = global.NEXUS_CATALOG;
 const assert = (condition,message) => { if (!condition) throw new Error(message); };
 
 const state = E.createInitialState();
-assert(state.version === "1.8-alpha", "Versión incorrecta");
+assert(state.version === "1.8.1-alpha", "Versión incorrecta");
 assert(state.countries.length === 197, "Deben existir 197 países");
 assert(state.companies.length >= 170, "Bolsa insuficientemente ampliada");
 assert(C.buildings.length >= 40, "Catálogo industrial insuficiente");
