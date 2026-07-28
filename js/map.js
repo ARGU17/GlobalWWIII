@@ -77,7 +77,7 @@ window.NEXUS_MAP_ENGINE = (() => {
   function zoomAt(x,y,delta){const before=screenToGeo(x,y);camera.zoom=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,camera.zoom+delta));const after=screenToGeo(x,y);camera.lat=clampLat(camera.lat+(before.lat-after.lat));camera.lng=normalizeLng(camera.lng+(before.lng-after.lng));persistCamera();needsRender=true}
   function persistCamera(){if(!state)return;state.mapCenter=[camera.lat,camera.lng];state.mapZoom=camera.zoom}
 
-  function draw(){if(!ctx)return;hitMarkers=[];hitRegions=[];ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);drawBackground();drawTiles();drawAtmosphere();drawCountries();drawRegions();drawTradeRoutes();drawFacilities();drawUnits();drawWars();drawHUD();ctx.restore()}
+  function draw(){if(!ctx)return;hitMarkers=[];hitRegions=[];ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);drawBackground();drawTiles();drawAtmosphere();drawCountries();const layer=state.mapLayer||"political";if(!["military","industry"].includes(layer)){drawRegions();drawTradeRoutes()}if(layer==="industry")drawFacilities();if(layer==="military"){drawUnits();drawWars()}drawHUD();ctx.restore()}
   function drawBackground(){const g=ctx.createLinearGradient(0,0,0,height);g.addColorStop(0,"#061725");g.addColorStop(.55,"#082437");g.addColorStop(1,"#04111d");ctx.fillStyle=g;ctx.fillRect(0,0,width,height)}
 
   function drawTiles(){if(state?.mapBase==="vector")return;const z=Math.max(1,Math.min(7,Math.floor(camera.zoom)));const zScale=Math.pow(2,camera.zoom-z);const centerZ=project(camera.lat,camera.lng,z);const viewW=width/zScale,viewH=height/zScale;const left=centerZ.x-viewW/2,top=centerZ.y-viewH/2;const minX=Math.floor(left/TILE_SIZE),maxX=Math.floor((left+viewW)/TILE_SIZE),minY=Math.floor(top/TILE_SIZE),maxY=Math.floor((top+viewH)/TILE_SIZE);const n=Math.pow(2,z);
@@ -88,8 +88,8 @@ window.NEXUS_MAP_ENGINE = (() => {
   function getTile(z,x,y){const key=`${z}/${x}/${y}`;if(tileCache.has(key))return tileCache.get(key);if(tileCache.size>260){const first=tileCache.keys().next().value;tileCache.delete(first)}const img=new Image();img.decoding="async";img.onload=()=>{needsRender=true};img.onerror=()=>{img.failed=true};img.src=`https://tile.openstreetmap.org/${z}/${x}/${y}.png`;tileCache.set(key,img);return img}
   function drawAtmosphere(){ctx.fillStyle=state?.mapBase==="vector"?"rgba(2,13,23,.05)":"rgba(2,10,18,.38)";ctx.fillRect(0,0,width,height);const g=ctx.createRadialGradient(width*.5,height*.45,50,width*.5,height*.45,Math.max(width,height)*.7);g.addColorStop(0,"rgba(58,146,189,.02)");g.addColorStop(1,"rgba(0,5,12,.32)");ctx.fillStyle=g;ctx.fillRect(0,0,width,height)}
 
-  function drawCountries(){hitCountries=[];for(const feature of geojson.features||[]){const id=feature.properties?.ISO3;if(!id)continue;const country=state.countries.find(c=>c.id===id);if(!country)continue;const selected=id===state.selectedCountryId,controlled=id===state.controlledCountryId;const paths=geometryPaths(feature.geometry);for(const path of paths){if(!path)continue;ctx.save();ctx.fillStyle=countryColor(country);ctx.globalAlpha=selected?.62:controlled?.5:camera.zoom<3?.38:.22;ctx.fill(path);ctx.globalAlpha=selected||controlled?1:.74;ctx.strokeStyle=selected?"#ffffff":controlled?"#ffe66d":"#7dc8e5";ctx.lineWidth=selected?2.2:controlled?1.8:.55;ctx.stroke(path);ctx.restore();hitCountries.push({path,country})}
-      if(camera.zoom>3.4&&state.settings?.showMapLabels!==false&&country.economy.gdp>80){const p=toScreen(country.map.lat,country.map.lng);drawLabel(p.x,p.y,country.name,selected||controlled?"#fff":"#c8e6f3",selected?12:9)}
+  function drawCountries(){hitCountries=[];for(const feature of geojson.features||[]){const id=feature.properties?.ISO3;if(!id)continue;const country=state.countries.find(c=>c.id===id);if(!country)continue;const owner=country.annexedBy?state.countries.find(c=>c.id===country.annexedBy)||country:country,selected=owner.id===state.selectedCountryId,controlled=owner.id===state.controlledCountryId;const paths=geometryPaths(feature.geometry);for(const path of paths){if(!path)continue;ctx.save();ctx.fillStyle=countryColor(owner);ctx.globalAlpha=selected?.62:controlled?.5:camera.zoom<3?.38:.22;ctx.fill(path);ctx.globalAlpha=country.sovereign===false?.16:selected||controlled?1:.74;ctx.strokeStyle=country.sovereign===false?countryColor(owner):selected?"#ffffff":controlled?"#ffe66d":"#7dc8e5";ctx.lineWidth=country.sovereign===false?.2:selected?2.2:controlled?1.8:.55;ctx.stroke(path);ctx.restore();hitCountries.push({path,country:owner})}
+      if(country.sovereign!==false&&camera.zoom>3.4&&state.settings?.showMapLabels!==false&&country.economy.gdp>80){const p=toScreen(country.map.lat,country.map.lng);drawLabel(p.x,p.y,country.name,selected||controlled?"#fff":"#c8e6f3",selected?12:9)}
     }}
   function geometryPaths(geometry){
     if(!geometry)return[];
@@ -121,7 +121,7 @@ window.NEXUS_MAP_ENGINE = (() => {
     }
     return result;
   }
-  function countryColor(c){const owner=c.annexedBy?state.countries.find(x=>x.id===c.annexedBy)||c:c,layer=state.mapLayer||"political";if(layer==="political")return owner.color||"#4d8fd8";if(layer==="economy")return heat(owner.economy.gdp,1,30000,"#214562","#ffd75f");if(layer==="military")return heat(owner.systems.military,10,100,"#263f54","#ff5d6f");if(layer==="technology")return heat(owner.systems.technology,10,100,"#252d61","#4de4ff");if(layer==="stability")return heat(owner.systems.stability,20,98,"#7b3345","#45d58a");return owner.color}
+  function countryColor(c){const owner=c.annexedBy?state.countries.find(x=>x.id===c.annexedBy)||c:c,layer=state.mapLayer||"political";if(layer==="political")return owner.color||"#4d8fd8";if(layer==="economy")return heat(owner.economy.gdp,1,30000,"#214562","#ffd75f");if(layer==="military")return "#142536";if(layer==="industry")return "#132c31";if(layer==="technology")return heat(owner.systems.technology,10,100,"#252d61","#4de4ff");if(layer==="stability")return heat(owner.systems.stability,20,98,"#7b3345","#45d58a");return owner.color}
   function heat(v,min,max,a,b){const t=Math.max(0,Math.min(1,(Math.log1p(v)-Math.log1p(min))/(Math.log1p(max)-Math.log1p(min))));const A=hex(a),B=hex(b);return`rgb(${Math.round(A[0]+(B[0]-A[0])*t)},${Math.round(A[1]+(B[1]-A[1])*t)},${Math.round(A[2]+(B[2]-A[2])*t)})`}
   function hex(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
 
@@ -164,19 +164,17 @@ window.NEXUS_MAP_ENGINE = (() => {
   function curvePoint(p0,p1,p2,t){const u=1-t;return{x:u*u*p0.x+2*u*t*p1.x+t*t*p2.x,y:u*u*p0.y+2*u*t*p1.y+t*t*p2.y}}
   function drawTradeRoutes(){
     const routes=(state.tradeRoutes||[]).filter(r=>r.active!==false);if(!routes.length)return;const focus=new Set([state.controlledCountryId,state.selectedCountryId]);
-    for(const route of routes){if(camera.zoom>3.4&&!route.countries.some(id=>focus.has(id)))continue;for(const ship of route.ships||[]){const a=state.countries.find(c=>c.id===ship.from),b=state.countries.find(c=>c.id===ship.to);if(!a||!b)continue;const from=route.points?.[ship.from]||[a.map.lat,a.map.lng],to=route.points?.[ship.to]||[b.map.lat,b.map.lng],p0=toScreen(from[0],from[1]),p2=toScreen(to[0],to[1]),mx=(p0.x+p2.x)/2,my=(p0.y+p2.y)/2-Math.min(90,25+Math.abs(p2.x-p0.x)*.09),p1={x:mx,y:my};ctx.save();ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.quadraticCurveTo(p1.x,p1.y,p2.x,p2.y);ctx.setLineDash([6,7]);ctx.lineDashOffset=-(Date.now()/150)%13;ctx.strokeStyle="rgba(74,218,255,.62)";ctx.lineWidth=1.6;ctx.stroke();ctx.setLineDash([]);const t=Math.max(0,Math.min(1,(ship.progress||0)+(ship.dailyStep||.02)*clockFraction())),p=curvePoint(p0,p1,p2,t);ctx.beginPath();ctx.arc(p.x,p.y,12,0,Math.PI*2);ctx.fillStyle="rgba(3,20,32,.94)";ctx.fill();ctx.strokeStyle="#55dcff";ctx.lineWidth=1.5;ctx.stroke();ctx.font="14px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";ctx.fillText("🚢",p.x,p.y);ctx.restore();const cargo=ship.cargo||{};hitMarkers.push({x:p.x,y:p.y,r:18,html:`<strong>🚢 ${ship.name}</strong><span>${a.flag} ${a.name} → ${b.flag} ${b.name}</span><span>${cargo.icon||"📦"} ${cargo.quantity||0} ${cargo.unit||""} de ${cargo.name||"suministros"}</span><span>Progreso ${(t*100).toFixed(0)}%</span>`})}}
+    for(const route of routes){if(camera.zoom>3.4&&!route.countries.some(id=>focus.has(id)))continue;for(const ship of route.ships||[]){const a=state.countries.find(c=>c.id===ship.from),b=state.countries.find(c=>c.id===ship.to);if(!a||!b)continue;const from=route.points?.[ship.from]||[a.map.lat,a.map.lng],to=route.points?.[ship.to]||[b.map.lat,b.map.lng],p0=toScreen(from[0],from[1]),p2=toScreen(to[0],to[1]),land=route.transportMode==="land",mx=(p0.x+p2.x)/2,my=(p0.y+p2.y)/2-(land?0:Math.min(90,25+Math.abs(p2.x-p0.x)*.09)),p1={x:mx,y:my};ctx.save();ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.quadraticCurveTo(p1.x,p1.y,p2.x,p2.y);ctx.setLineDash([6,7]);ctx.lineDashOffset=-(Date.now()/150)%13;ctx.strokeStyle=land?"rgba(255,194,83,.72)":"rgba(74,218,255,.62)";ctx.lineWidth=1.6;ctx.stroke();ctx.setLineDash([]);const t=Math.max(0,Math.min(1,(ship.progress||0)+(ship.dailyStep||.02)*clockFraction())),p=curvePoint(p0,p1,p2,t),icon=land?"🚚":"🚢";ctx.beginPath();ctx.arc(p.x,p.y,12,0,Math.PI*2);ctx.fillStyle="rgba(3,20,32,.94)";ctx.fill();ctx.strokeStyle=land?"#ffc253":"#55dcff";ctx.lineWidth=1.5;ctx.stroke();ctx.font="14px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";ctx.fillText(icon,p.x,p.y);ctx.restore();const cargo=ship.cargo||{};hitMarkers.push({x:p.x,y:p.y,r:18,html:`<strong>${icon} ${ship.name}</strong><span>${a.flag} ${a.name} → ${b.flag} ${b.name}</span><span>${cargo.icon||"📦"} ${cargo.quantity||0} ${cargo.unit||""} de ${cargo.name||"suministros"}</span><span>${land?"Corredor terrestre":"Ruta marítima"} · progreso ${(t*100).toFixed(0)}%</span>`})}}
   }
 
   function drawFacilities(){
-    if(camera.zoom<3.5)return;
+    if(camera.zoom<2.2)return;
     const countriesToShow=new Set([state.controlledCountryId,state.selectedCountryId]);
     for(const country of state.countries){
-      if(!countriesToShow.has(country.id)&&camera.zoom<5.7)continue;
+      if(state.mapLayer!=="industry"&&!countriesToShow.has(country.id)&&camera.zoom<5.7)continue;
       const regions=window.NEXUS_ECONOMY?.getCountryRegions?.(state,country.id)||(country.id==="ESP"?state.regions:country.strategicRegions)||[];
       const byId=new Map(regions.map(r=>[r.id,r]));
-      let facilities=[];
-      if(country.id==="ESP")facilities=state.regions.flatMap(r=>(r.buildings||[]).map(b=>({...b,regionName:r.name,region:r})));
-      else facilities=(country.facilities||[]).map(b=>{const r=byId.get(b.regionId);return{...b,regionName:r?.name||country.name,region:r}});
+      let facilities=(window.NEXUS_ECONOMY?.facilitiesForCountry?.(state,country.id)||[]).map(b=>{const r=b.region||byId.get(b.regionId);return{...b,regionName:r?.name||b.place||country.name,region:r}});
       for(const facility of facilities){
         const base=facility.region||country.map;const p=toScreen(facility.lat??base.lat??country.map.lat,facility.lng??base.lng??country.map.lng);
         if(p.x<-25||p.x>width+25||p.y<-25||p.y>height+25)continue;
@@ -189,10 +187,10 @@ window.NEXUS_MAP_ENGINE = (() => {
   function drawMarker(x,y,glyph,color,badge){ctx.save();ctx.shadowColor="rgba(0,0,0,.7)";ctx.shadowBlur=8;ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle="#07131d";ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();ctx.font="10px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";ctx.fillText(glyph,x,y+1);if(badge>1){ctx.beginPath();ctx.arc(x+9,y-9,6,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.font="bold 7px system-ui";ctx.fillStyle="#061019";ctx.fillText(String(badge),x+9,y-9)}ctx.restore()}
 
   function drawUnits(){
-    if(camera.zoom<3.05)return;
+    if(camera.zoom<2.2)return;
     const show=new Set([state.controlledCountryId,state.selectedCountryId]);
     for(const country of state.countries){
-      if(!show.has(country.id)&&camera.zoom<5.8)continue;
+      if(state.mapLayer!=="military"&&!show.has(country.id)&&camera.zoom<5.8)continue;
       for(const unit of country.units||[]){
         if(unit.quantity<=0)continue;
         let lat=unit.lat??country.map.lat,lng=unit.lng??country.map.lng;
