@@ -35,6 +35,12 @@ window.NEXUS_UI = (() => {
     if (bound) return;
     bound = true;
     document.addEventListener("click", event => {
+      const simulation = event.target.closest("[data-sim-action]");
+      if (simulation) {
+        if (simulation.dataset.simAction === "toggle") actions.toggleRun?.();
+        if (simulation.dataset.simAction === "step") actions.stepDay?.();
+        return;
+      }
       const nav = event.target.closest("[data-panel]");
       if (nav) { actions.setPanel?.(nav.dataset.panel); return; }
       const jump = event.target.closest("[data-panel-jump]");
@@ -61,8 +67,6 @@ window.NEXUS_UI = (() => {
       if (event.target.id === "diplomacySearch") { diplomacyQuery=event.target.value.trim().toLowerCase(); renderPanel(); }
       if (event.target.id === "stockSearch") { stockQuery=event.target.value.trim().toLowerCase(); renderPanel(); }
     });
-    document.getElementById("playPauseBtn")?.addEventListener("click", () => actions.toggleRun?.());
-    document.getElementById("stepBtn")?.addEventListener("click", () => actions.stepDay?.());
     document.getElementById("saveBtn")?.addEventListener("click", () => actions.save?.());
     document.getElementById("loadBtn")?.addEventListener("click", () => actions.load?.());
     document.getElementById("exportBtn")?.addEventListener("click", () => actions.exportSave?.());
@@ -363,7 +367,7 @@ window.NEXUS_UI = (() => {
   function renderSettings() {
     return `${heading("Configuración y partida","Guardado local, importación y preferencias")}
       <div class="settings-grid"><section class="setting-card"><h3>Simulación</h3>${toggleSetting("autosave","Autoguardado semanal",state.settings.autosave)}${toggleSetting("reducedMotion","Reducir animaciones",state.settings.reducedMotion)}${toggleSetting("denseUI","Interfaz compacta",state.settings.denseUI)}${toggleSetting("showMapLabels","Etiquetas del mapa",state.settings.showMapLabels)}</section>
-      <section class="setting-card"><h3>Tiempo</h3>${info("x1","1 día / 10 s reales")}${info("x2","1 día / 5 s reales")}${info("x4","1 día / 2,5 s reales")}${info("Paso manual","+1 día")}</section>
+      <section class="setting-card"><h3>Tiempo</h3>${info("x1","1 día / 10 s reales")}${info("x2","1 día / 5 s reales")}${info("x4","1 día / 2,5 s reales")}${info("x16","1 día / 0,625 s reales")}${info("x32","1 día / 0,313 s reales")}${info("Paso manual","+1 día")}</section>
       <section class="setting-card"><h3>Partida</h3><div class="action-list"><button data-action="repair">🛠 Reparar estado</button><button data-action="import">📥 Importar guardado</button><button onclick="NEXUS_ACTIONS.exportSave()">📤 Exportar JSON</button><button class="danger-btn" data-action="reset">♻ Reiniciar campaña</button></div></section>
       <section class="setting-card"><h3>Integridad</h3>${info("Versión",state.version)}${info("Países",state.countries.length)}${info("Tecnologías",C().technologies.length)}${info("Unidades",fmt0(state.countries.reduce((s,c)=>s+totalUnits(c),0)))}</section></div>`;
   }
