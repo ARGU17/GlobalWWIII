@@ -1,4 +1,4 @@
-# Validación técnica — Alpha v1.8.2
+# Validación técnica — Strategic Command v2.0.0
 
 ## Validaciones ejecutadas
 
@@ -10,7 +10,7 @@
 
 ## Resultado del modelo
 
-- Versión: `1.8.2-alpha`.
+- Versión: `2.0.0-alpha`.
 - 197 países.
 - 176 empresas.
 - 42 instalaciones.
@@ -38,6 +38,14 @@
 - Daño territorial, cola de reconstrucción y recuperación de instalaciones verificados.
 - Costes de ampliación industrial expuestos por el motor y por la interfaz.
 - Limpieza de tratados tras anexión verificada.
+- Trece campañas multidominio verificadas: superioridad aérea, ataque de precisión, bloqueo naval, asalto anfibio, invasión terrestre, ofensiva cibernética, guerra total, ISR, SEAD, guerra antisubmarina, ataque naval, asalto aerotransportado e incursiones especiales.
+- Cuatro doctrinas operativas, movilización de reservas, requisitos de fuerza, costes y efectos territoriales verificados.
+- Selección libre del partido apoyado, tres intensidades de campaña electoral y previsión dinámica de votos/escaños verificadas.
+- Catorce fotografías militares locales, diecisiete familias de unidad y nombres de plataformas reales verificados.
+- Contratos militares con modelo, fabricante, generación y función conservados al terminar la producción.
+- Plan operacional con tempo, reglas de enfrentamiento, prioridad, apoyo y prerrequisitos verificado.
+- Postura conjunta y Sala de Situación Global verificadas con valores finitos y focos de riesgo.
+- Rendimiento del motor sobre 197 Estados: entre 16 y 27 ms por día simulado en la medición local, frente a aproximadamente 1,1 s antes de eliminar la normalización cuadrática.
 
 ## Resultado de interfaz DOM
 
@@ -74,12 +82,17 @@ También se verificó:
 - Sala de Guerra con sostenimiento, reservas, marchas, objetivos y daño reconstruible.
 - Diplomacia sin Estados anexionados.
 - Centro de decisiones accionables en Resumen.
+- Tablero mundial fijo ampliado, geometría cartográfica cacheada, rejilla estratégica y campañas militares animadas.
+- Sala de Guerra multidominio con selector de región objetivo, doctrina, reservas y cronología de campañas.
+- Estrategia electoral con partido elegible, impulso, proyección y acciones de campaña.
 
 ## Prueba funcional en navegador
 
 Se sirvió el proyecto mediante HTTP local y se verificó en el navegador integrado:
 
-- Arranque completo de Alpha v1.8.2 sin errores de consola.
+- Arranque completo de Strategic Command v2.0.0 sin errores de consola.
+- Cambio de mapa desde España a Estados Unidos verificado: país, cámara y panel de inspección se actualizaron conjuntamente.
+- Botón `MUNDO` verificado: mapa global completo y panel territorial oculto.
 - Inicio, pausa y avance manual operativos tras comenzar la campaña.
 - Cambios x1, x2, x4, x16 y x32 aplicados durante la simulación.
 - Conservación del progreso parcial del día al cambiar de velocidad.
@@ -89,11 +102,17 @@ Se sirvió el proyecto mediante HTTP local y se verificó en el navegador integr
 - Tecnología con generación prevista y desbloqueos industriales.
 - Bolsa con Mis participaciones.
 - Persistencia de la región seleccionada: Asturias siguió activa al avanzar del 1 al 2 de enero de 2028.
+- Prueba sostenida a x32: seis días simulados en 2,7 segundos incluyendo la interacción de pausa, con interfaz sensible y pausa inmediata.
+- Mapa vectorial visible a `736 × 600 px` en la ventana de prueba adaptativa y zoom mundial funcional.
+- Capa Militar con miniaturas separadas por rejilla, sin superposición de países vecinos al acercarse.
+- Cuarenta y siete usos fotográficos renderizados, catorce archivos únicos cargados, cero imágenes rotas y cero errores de consola.
+- Inventario visible con Leopard 2E, Eurofighter Typhoon Tranche 4 y S-80 Plus clase Isaac Peral.
 
 ## Comandos ejecutados
 
 ```bash
-node --check js/alpha-v18.js
+node --check js/alpha-v20.js
+node --check js/alpha-v19.js
 node --check js/auth.js
 node --check js/ui.js
 node --check js/map.js
@@ -101,6 +120,8 @@ node --check js/app.js
 node tests/v18-validation.js
 node tests/v181-time-validation.js
 node tests/v182-auth-validation.js
+node tests/v19-validation.js
+node tests/v20-validation.js
 node tests/ui-render-validation.js
 node tests/model-validation.js
 git diff --check

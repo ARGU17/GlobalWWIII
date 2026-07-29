@@ -1,6 +1,6 @@
-# Subir NEXUS Global Alpha v1.8.2 a GitHub Pages
+# Subir NEXUS Global Strategic Command v2.0.0 a GitHub Pages
 
-1. Descarga y descomprime `NEXUS_Global_Alpha_v1.8.2_GitHub.zip`.
+1. Descarga y descomprime `NEXUS_Global_Strategic_Command_v2.0.0_GitHub.zip`.
 2. Abre la carpeta descomprimida.
 3. Selecciona **todos los archivos y carpetas interiores**.
 4. Súbelos a la raíz del repositorio.

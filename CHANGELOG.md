@@ -1,5 +1,34 @@
 # Changelog
 
+## Strategic Command v2.0.0
+
+- Corregido el fallo que dejaba la cámara en España al seleccionar otro país.
+- Añadido botón `MUNDO`, zoom adaptativo y repetición de geometría suficiente para monitores ultrapanorámicos.
+- Ocultado el listado territorial español en la vista mundial.
+- Rediseñada la interfaz completa con un sistema visual profesional grafito y un mapa mayor.
+- Integradas catorce fotografías militares locales con atribución documentada.
+- Sustituidos los marcadores militares por miniaturas fotográficas con cantidad y ficha contextual.
+- Añadidos catálogos nacionales de plataformas reales para España, Estados Unidos, Francia, Reino Unido, Alemania, China, Rusia, India, Japón e Israel.
+- Los contratos y unidades conservan modelo, fabricante, generación, función, fotografía y formación al completar la producción.
+- Ampliado el sistema a trece campañas multidominio con ISR, SEAD, guerra antisubmarina, ataque naval, asalto aerotransportado e incursiones especiales.
+- Añadidos prerrequisitos operacionales de aire, mar, suministro, inteligencia y movilización.
+- Añadidos tempo, reglas de enfrentamiento, prioridad de objetivos y apoyo asignado.
+- Añadidos tablero de postura conjunta y Sala de Situación Global.
+- Nueva clave de guardado con migración automática desde Alpha v1.9.0 y anteriores.
+
+## Alpha v1.9.0
+
+- Eliminado el redibujado completo del mapa a 60 FPS: caché de geometrías, índice de países y límite visual de 12 FPS.
+- Desacoplado el tick diario de la reconstrucción DOM, con actualización agrupada en x4, x16 y x32.
+- Mapa vectorial local predeterminado, tablero ampliado y nueva cuadrícula estratégica.
+- Añadidas siete campañas militares multidominio con objetivos regionales, costes, reservas, duración, progreso e impacto.
+- Añadidas cuatro doctrinas de campaña y movilización de reservas desde la Sala de Guerra.
+- Visualización cartográfica de campañas aéreas, navales, terrestres, cibernéticas y de guerra total.
+- Añadida selección libre del partido a apoyar, campañas electorales y previsión dinámica de voto y escaños.
+- Reparada la sobrescritura de rutas SVG militares; los glifos de mapa usan ahora un campo independiente.
+- Añadidas denominaciones reconocibles de formaciones y sistemas militares para España, Estados Unidos, Francia, Alemania, Reino Unido, China, Rusia e India, con nomenclatura genérica coherente para el resto.
+- Nueva clave de guardado con migración automática desde Alpha v1.8.2 y versiones anteriores.
+
 ## Alpha v1.8.2
 
 - Añadidos registro, inicio de sesión por usuario o correo y sesión persistente opcional.

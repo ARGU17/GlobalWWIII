@@ -1,8 +1,29 @@
-# NEXUS Global — Alpha v1.8.2
+# NEXUS Global — Strategic Command v2.0.0
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
 
-## Sistema de cuentas Alpha v1.8.2
+## Evolución principal de Strategic Command v2.0.0
+
+- **Mapa mundial recuperado:** el selector de país centra ahora la cámara en el Estado elegido, el botón `MUNDO` recompone el tablero global y el zoom mínimo se adapta a pantallas ultrapanorámicas. Las regiones españolas ya no cubren la vista mundial fuera del modo territorial.
+- **Interfaz profesional:** nuevo sistema visual grafito, jerarquía tipográfica reforzada, mapa de hasta 650 px, paneles de mayor densidad informativa y diseño adaptativo para escritorio, tableta y móvil.
+- **Fuerza conjunta fotográfica:** catorce fotografías militares reutilizables y almacenadas localmente sustituyen los símbolos rotos en inventario, despliegues y miniaturas cartográficas.
+- **Plataformas reales por país:** contratos y unidades identifican modelo, fabricante, generación y función. Incluye F-35A, F-22A, F-16V, Eurofighter, Rafale, Leopard 2E/A7, F-110, S-80 Plus, Virginia, Arleigh Burke y Gerald R. Ford, entre otros.
+- **Planeamiento operacional:** trece campañas encadenables, incluidas ISR, SEAD, guerra antisubmarina, ataque naval, asalto aerotransportado y fuerzas especiales. Los requisitos de superioridad aérea, control naval, suministro y movilización bloquean operaciones inviables.
+- **Decisiones de mando:** tempo, reglas de enfrentamiento, prioridad de objetivos y apoyo asignado modifican consumo, impacto, riesgo civil, legitimidad y sostenimiento.
+- **Sala de situación global:** Resumen incorpora guerras, focos de inestabilidad y riesgo en Ormuz, Bab el-Mandeb, Suez, Malaca y mar de China Meridional.
+
+## Mejoras conservadas de Alpha v1.9.0
+
+- **Simulación fluida:** el mapa deja de recalcular las 197 geometrías en cada fotograma, limita las animaciones a 12 FPS y desacopla la interfaz del motor diario en x16/x32.
+- **Tablero mundial fijo:** el mapa vectorial local es ahora la base predeterminada, aumenta su tamaño, incorpora cuadrícula estratégica y conserva zoom, selección y arrastre.
+- **Campañas multidominio:** superioridad aérea, ataques de precisión, bloqueos navales, asaltos anfibios, invasiones terrestres, ciberofensivas y guerra total convencional.
+- **Mando de campaña:** doctrina elegible, objetivo regional, movilización de reservas, costes de Tesoro/capital político/combustible/munición, duración, progreso e impacto operacional.
+- **Guerra visible:** las campañas muestran arcos, iconos en movimiento y objetivos sobre la capa Militar; los resultados alteran aire, mar, logística, infraestructura, frente y control territorial.
+- **Partido político elegible:** se puede escoger cualquier partido, financiar campañas locales o nacionales y consultar una previsión dinámica de voto y escaños.
+- **Unidades identificables:** se reparan los SVG y se separan de los glifos cartográficos. Las fuerzas principales reciben nombres y sistemas reconocibles por país, como Leopard 2E, Eurofighter, F-100, S-80, M1A2, F-35, Rafale o Leclerc.
+- **Compatibilidad:** los guardados de Alpha v1.8.2 y anteriores se migran automáticamente a la nueva clave sin perder sistemas previos.
+
+## Sistema de cuentas conservado desde Alpha v1.8.2
 
 - **Crear cuenta e iniciar sesión:** acceso por usuario o correo, validación de credenciales y opción de mantener la sesión.
 - **Credenciales protegidas:** la contraseña se deriva con PBKDF2-SHA-256, 150.000 iteraciones y una sal aleatoria por cuenta; nunca se conserva en texto plano.
@@ -150,7 +171,7 @@ Después abre `http://localhost:8000`.
 
 ## GitHub Pages
 
-1. Descomprime `NEXUS_Global_Alpha_v1.8.2_GitHub.zip`.
+1. Descomprime `NEXUS_Global_Strategic_Command_v2.0.0_GitHub.zip`.
 2. Sube **todos los archivos y carpetas interiores** a la raíz del repositorio.
 3. Activa `Settings → Pages → Deploy from a branch → main → / (root)`.
 4. Espera al despliegue y realiza una recarga forzada.
@@ -159,7 +180,7 @@ El ZIP ya tiene `index.html` en la raíz. GitHub no descomprime ZIP automáticam
 
 ## Guardados
 
-Alpha v1.8.2 utiliza la clave base `nexus_alpha_v1_8_2_save`, añade el identificador de la cuenta activa y migra guardados de v1.8.1 y anteriores. **Reiniciar campaña** solo elimina la partida de la cuenta actual.
+Strategic Command v2.0.0 utiliza la clave base `nexus_alpha_v2_0_0_save`, añade el identificador de la cuenta activa y migra guardados desde v1.9.0 y anteriores. **Reiniciar campaña** solo elimina la partida de la cuenta actual.
 
 ## Nota de simulación
 
