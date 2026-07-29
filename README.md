@@ -1,8 +1,10 @@
-# NEXUS Global — Strategic Command v5.0.0
+# NEXUS Global — Strategic Command v5.1.0
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
 
-## Evolución sistémica de Strategic Command v5.0.0
+## Evolución sistémica de Strategic Command v5.1.0
+
+La v5.1 añade dos centros de mando completos: **Mercados v5.1** y **Sociedad v5.1**. En ellos se operan 21 mercados físicos, banca y moneda, empresas y plantas, energía y rutas; así como demografía, trabajo, ciudades, instituciones, partidos, medios, crimen, tratados, organizaciones e influencia. Consulte [ARCHITECTURE_V51.md](ARCHITECTURE_V51.md) para el contrato detallado.
 
 - **Núcleo determinista:** los sistemas v5 se registran en un pipeline ordenado, usan una semilla reproducible y aíslan errores por módulo. Los guardados v2 y anteriores se migran explícitamente al esquema 5 sin eliminar campos heredados.
 - **Economía conectada:** contabilidad nacional nominal/real, brecha de producción, ciclo, nueve mercados de productos, inventarios, escasez, precios, divisa, banco central, banca, bonos, bolsa y vivienda.
@@ -184,7 +186,7 @@ Después abre `http://localhost:8000`.
 
 ## GitHub Pages
 
-1. Descomprime `NEXUS_Global_Strategic_Command_v5.0.0_GitHub.zip`.
+1. Descomprime `NEXUS_Global_Strategic_Command_v5.1.0_GitHub.zip`.
 2. Sube **todos los archivos y carpetas interiores** a la raíz del repositorio.
 3. Activa `Settings → Pages → Deploy from a branch → main → / (root)`.
 4. Espera al despliegue y realiza una recarga forzada.
@@ -193,7 +195,7 @@ El ZIP ya tiene `index.html` en la raíz. GitHub no descomprime ZIP automáticam
 
 ## Guardados
 
-Strategic Command v5.0.0 utiliza la clave base `nexus_strategic_v5_0_0_save`, añade el identificador de la cuenta activa y migra guardados desde v2.0.0 y anteriores. **Reiniciar campaña** solo elimina la partida de la cuenta actual.
+Strategic Command v5.1.0 utiliza la clave base `nexus_strategic_v5_1_0_save`, añade el identificador de la cuenta activa y migra guardados desde v5.0.0, v2.0.0 y anteriores. **Reiniciar campaña** solo elimina la partida de la cuenta actual.
 
 ## Nota de simulación
 

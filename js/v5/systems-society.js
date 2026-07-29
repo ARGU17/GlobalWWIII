@@ -11,7 +11,7 @@
       const grid=c.v5.infrastructure?.energy;if(!grid)continue;const rand=rng(`energy:${c.id}`),weather=(rand()-.5)*.025,warDamage=(c.v5.military?.fronts?.length||0)*.003;
       const effective=grid.capacity*(grid.gridReliability/100)*(1-warDamage+weather),gap=(grid.demand-effective)/Math.max(1,grid.demand);grid.reserveMargin=round((effective/grid.demand-1)*100);grid.blackoutRisk=round(clamp(gap*130+(100-grid.gridReliability)*.25,0,100));
       c.systems.energy=round(clamp(c.systems.energy-grid.blackoutRisk*.004+(grid.reserveMargin>15?.004:0),10,100));
-      const product=c.v5.economy.products.energy;if(product){product.supply=round(product.supply*(1-grid.blackoutRisk/25000),3);product.shortage=round(clamp(product.shortage+grid.blackoutRisk/500,0,100))}
+      const product=c.v5.economy.products.electricity||c.v5.economy.products.energy;if(product){product.supply=round(product.supply*(1-grid.blackoutRisk/25000),3);product.production=product.supply;product.shortage=round(clamp(product.shortage+grid.blackoutRisk/500,0,100))}
       addFactor(c,"growth","Seguridad energética",-grid.blackoutRisk*.008,`Riesgo de apagón ${grid.blackoutRisk}%`);energySum+=product?.price||100;n++;
     }
     state.worldIndex.energyIndex=round(energySum/Math.max(1,n));
@@ -48,7 +48,7 @@
   V.registerSystem({id:"society.health-food",order:57,frequency:"monthly",run:({state,rng})=>{
     let food=0,n=0;
     for(const c of state.countries.filter(x=>x.sovereign!==false)){
-      const s=c.v5.society;if(!s)continue;const rand=rng(`health:${c.id}`),foodMarket=c.v5.economy.products.food,shortage=foodMarket.shortage;
+      const s=c.v5.society;if(!s)continue;const rand=rng(`health:${c.id}`),foodMarket=c.v5.economy.products.grains||c.v5.economy.products.food,shortage=foodMarket.shortage;
       s.food.reservesDays=round(clamp(s.food.reservesDays+(foodMarket.supply-foodMarket.demand)/Math.max(.1,foodMarket.demand)*12,0,240));s.food.calorieSecurity=round(clamp(100-shortage-s.food.waterStress*.12,0,100));s.food.malnutrition=round(clamp(s.food.malnutrition+shortage*.02-(c.budgets.health||4)*.008,0,45));
       const outbreakChance=(100-s.health.coverage+s.health.diseaseBurden)/2200;if(rand()<outbreakChance){const outbreak={id:V.uuid(state,"outbreak"),countryId:c.id,name:"Brote epidemiológico",severity:round(10+rand()*45),day:state.dayIndex,status:"active"};state.v5Networks.health.outbreaks.push(outbreak);s.health.pandemicRisk=round(clamp(s.health.pandemicRisk+outbreak.severity*.3,0,100));state.actionInbox.push({id:V.uuid(state,"health-decision"),type:"health",title:`Brote sanitario en ${c.name}`,text:"Decide entre vigilancia, vacunación y restricciones focalizadas.",countryId:c.id,options:["Vigilancia reforzada","Campaña sanitaria","Restricciones focalizadas"],status:"pending"})}
       s.health.capacity=round(clamp(s.health.capacity+(c.budgets.health-4)*.025-s.health.pandemicRisk*.003,10,100));s.lifeExpectancy=round(clamp(s.lifeExpectancy+(s.health.capacity-55)*.0008-s.food.malnutrition*.001,45,90),2);food+=foodMarket.price;n++;

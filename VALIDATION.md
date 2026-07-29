@@ -1,4 +1,8 @@
-# Validación técnica — Strategic Command v5.0.0
+# Validación técnica — Strategic Command v5.1.0
+
+## Validación v5.1
+
+Ejecutar `node tests/v51-validation.js`. La prueba comprueba el catálogo exacto de 21 mercados y todos sus saldos; cuentas nacionales; inflación y ciclo; moneda, banca y mercados; empresas y plantas; logística y 12 puntos estratégicos; 15 tecnologías energéticas; demografía, migración, empleo y educación; ciudades; instituciones, partidos, Gobierno, opinión, medios y crimen; diplomacia, 16 tratados, 15 organizaciones y 11 canales de influencia. También ejecuta las decisiones del jugador, renderiza ambos paneles, simula 92 días, descarta valores no finitos, compara dos partidas deterministas y migra una partida v5.0.
 
 ## Validación v5.0 ejecutada
 

@@ -129,6 +129,13 @@ window.NEXUS_UI = (() => {
       operationalPlan: () => { const tempo=document.getElementById(`planTempo-${d.warId}`),roe=document.getElementById(`planRoe-${d.warId}`),priority=document.getElementById(`planPriority-${d.warId}`),support=document.getElementById(`planSupport-${d.warId}`);actions.setOperationalPlan?.(d.warId,tempo?.value||"balanced",roe?.value||"discriminate",priority?.value||"forces",Number(support?.value||50)); },
       resolveDecision: () => actions.resolveDecision?.(d.decisionId, d.choiceId),
       resolveV5: () => { const r=E().resolveV5Decision?.(state,d.decisionId,Number(d.choice||0)); if(r){toast(r.message,r.ok?"success":"error");renderAll();} },
+      v51Monetary: () => runV51(E().monetaryAction?.(state,d.kind)),
+      v51Financial: () => runV51(E().financialAction?.(state,d.kind)),
+      v51Corporate: () => { const select=document.getElementById(`corp-${d.firmId}`); runV51(E().corporateAction?.(state,d.firmId,select?.value)); },
+      v51Chokepoint: () => runV51(E().chokepointAction?.(state,d.pointId,d.kind)),
+      v51City: () => runV51(E().cityAction?.(state,d.cityId,d.kind)),
+      v51Influence: () => { const target=document.getElementById("v51Target"),channel=document.getElementById("v51Influence");runV51(E().influenceAction?.(state,target?.value,channel?.value)); },
+      v51Treaty: () => { const target=document.getElementById("v51Target"),type=document.getElementById("v51Treaty");runV51(E().treatyAction?.(state,target?.value,type?.value)); },
       reconstructRegion: () => actions.reconstructRegion?.(d.regionId, d.scope || "all"),
       reconstructCountry: () => actions.reconstructCountry?.(d.countryId),
       payDebt: () => actions.payDownDebt?.(Number(d.share || 5)),
@@ -139,6 +146,7 @@ window.NEXUS_UI = (() => {
     };
     handlers[type]?.();
   }
+  function runV51(result){if(!result)return;toast(result.message,result.ok?"success":"error");renderAll();window.NEXUS_MAP_ENGINE?.render()}
 
   function renderAll() {
     if (!state) return;
@@ -223,7 +231,7 @@ window.NEXUS_UI = (() => {
 
   function renderPanel() {
     const box=document.getElementById("mainPanel");if(!box)return;
-    const renderers={overview:renderOverview,systems:renderSystemsV5,economy:renderEconomy,regions:renderRegions,industry:renderIndustry,stock:renderStock,politics:renderPolitics,technology:renderTechnology,military:renderMilitary,diplomacy:renderDiplomacy,intelligence:renderIntelligence,objectives:renderObjectives,events:renderEvents,settings:renderSettings};
+    const renderers={overview:renderOverview,systems:renderSystemsV5,markets51:()=>window.NEXUS_V51_UI.renderMarkets(state),society51:()=>window.NEXUS_V51_UI.renderSociety(state),economy:renderEconomy,regions:renderRegions,industry:renderIndustry,stock:renderStock,politics:renderPolitics,technology:renderTechnology,military:renderMilitary,diplomacy:renderDiplomacy,intelligence:renderIntelligence,objectives:renderObjectives,events:renderEvents,settings:renderSettings};
     box.innerHTML=(renderers[state.activePanel]||renderOverview)();
   }
 

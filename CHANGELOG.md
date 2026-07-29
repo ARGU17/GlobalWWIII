@@ -1,5 +1,20 @@
 # Changelog
 
+## Strategic Command v5.1.0
+
+- Añadidos 21 mercados físicos diferenciados y contabilidad nacional completa.
+- Añadidos inflación emergente, expectativas y nueve fases de ciclo/crisis.
+- Añadidos moneda, banco central, curva de tipos, bancos, bonos y mercados financieros ampliados.
+- Empresas convertidas en agentes con plantas, cadenas de suministro, multinacionales y decisiones corporativas.
+- Red logística mundial física con doce puntos estratégicos y recálculo de rutas.
+- Red energética física con quince tecnologías y mercado eléctrico.
+- Demografía por cohortes y dimensiones, migración, profesiones y educación con plazos.
+- Ciudades reales, vivienda, suelo, urbanismo e intervención municipal.
+- Instituciones, partidos multidimensionales, Gobierno, opinión segmentada, medios y narrativa.
+- Corrupción, crimen, economía sumergida y costes de represión.
+- Diplomacia multidimensional, dieciséis tratados, quince organizaciones y once canales de influencia.
+- Dos paneles nuevos, acciones jugables y migración compatible desde v5.0.
+
 ## Strategic Command v5.0.0
 
 - Sustituida la extensión encadenada por un registro v5 determinista con 23 sistemas, frecuencias explícitas y auditoría de cada tick.

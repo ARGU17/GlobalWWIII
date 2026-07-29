@@ -38,7 +38,7 @@
     for(const c of countries(state)){
       const candidates=[
         {type:"financial",score:c.v5.economy.banking.stress,title:`Tensión bancaria en ${c.name}`,text:"La mora, el coste de financiación y la liquidez amenazan el crédito.",options:["Garantía de depósitos","Recapitalización condicionada","Resolución bancaria"]},
-        {type:"food",score:c.v5.economy.products.food.shortage,title:`Escasez alimentaria en ${c.name}`,text:"Inventarios y oferta no cubren la demanda doméstica.",options:["Importación de emergencia","Liberar reservas","Subsidio focalizado"]},
+        {type:"food",score:(c.v5.economy.products.grains||c.v5.economy.products.food).shortage,title:`Escasez alimentaria en ${c.name}`,text:"Inventarios y oferta no cubren la demanda doméstica.",options:["Importación de emergencia","Liberar reservas","Subsidio focalizado"]},
         {type:"social",score:c.v5.society.opinion.protestPotential,title:`Movilización social en ${c.name}`,text:"Vivienda, precios y empleo convergen en una protesta nacional.",options:["Diálogo social","Paquete económico","Orden público proporcionado"]},
         {type:"energy",score:c.v5.infrastructure.energy.blackoutRisk,title:`Alerta de red eléctrica en ${c.name}`,text:"La reserva disponible no garantiza la continuidad del sistema.",options:["Respuesta de demanda","Importar electricidad","Activar reserva térmica"]}
       ];
