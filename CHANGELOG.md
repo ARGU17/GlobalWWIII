@@ -1,5 +1,23 @@
 # Changelog
 
+## Strategic Command v5.0.0
+
+- Sustituida la extensión encadenada por un registro v5 determinista con 23 sistemas, frecuencias explícitas y auditoría de cada tick.
+- Añadido esquema de estado 5 con cinco migraciones secuenciales y conservación de guardados v2 y anteriores.
+- Añadidos contabilidad nacional, ciclo económico, productividad, nueve mercados de productos, inventarios, escasez y formación endógena de precios.
+- Añadidos moneda, reservas, banco central, regla de tipos, banca, crédito, mora, capital, bonos, bolsa y vivienda.
+- Convertidas las empresas en agentes con caja, deuda, empleo, inversión, capacidad, exportación, rentabilidad y salud financiera.
+- Añadidas redes de energía y carga con capacidad, fiabilidad, reserva, apagones, utilización y cuellos de botella.
+- Añadidos cohortes demográficas, migración, mercado laboral, capacidades, educación, ciudades, vivienda, sanidad, epidemias, alimentación, agua y clima.
+- Añadidos instituciones, burocracia, justicia, medios, opinión pública, narrativas, corrupción, crimen, economía informal, líderes y sucesión.
+- Añadidas relaciones diplomáticas multidimensionales, objetivos, líneas rojas, influencia, poder blando, inteligencia, confianza y niebla de guerra.
+- Añadidos difusión tecnológica, dominios de conocimiento, patentes y dependencias.
+- Añadida IA estratégica con prioridades nacionales y frecuencia global moderada de conflicto.
+- Añadidas logística militar diaria, fases operativas, suministro, moral, bajas, riesgo civil, ocupación, resistencia y alternativas posbélicas.
+- Reforzada la anexión para integrar población, PIB, empresas, productos, cohortes y territorios, seguida de una decisión sobre el modelo político.
+- Añadido panel visual **Sistemas** con causalidad, agentes, mercados, sociedad, instituciones, riesgos y decisiones.
+- Nueva clave de guardado `nexus_strategic_v5_0_0_save` y exportación `nexus-v5.0.0-fecha.json`.
+
 ## Strategic Command v2.0.0
 
 - Corregido el fallo que dejaba la cámara en España al seleccionar otro país.

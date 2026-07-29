@@ -1,6 +1,19 @@
-# NEXUS Global — Strategic Command v2.0.0
+# NEXUS Global — Strategic Command v5.0.0
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
+
+## Evolución sistémica de Strategic Command v5.0.0
+
+- **Núcleo determinista:** los sistemas v5 se registran en un pipeline ordenado, usan una semilla reproducible y aíslan errores por módulo. Los guardados v2 y anteriores se migran explícitamente al esquema 5 sin eliminar campos heredados.
+- **Economía conectada:** contabilidad nacional nominal/real, brecha de producción, ciclo, nueve mercados de productos, inventarios, escasez, precios, divisa, banco central, banca, bonos, bolsa y vivienda.
+- **Empresas como agentes:** ingresos, beneficio, caja, deuda, empleo, inversión, capacidad, productividad, exportaciones, salud financiera, cierres y presión sobre el crédito.
+- **Infraestructura física:** capacidad y fiabilidad de la red eléctrica, mezcla energética, riesgo de apagón, utilización de carga, puertos, ferrocarril, carreteras y cuellos de botella.
+- **Sociedad completa:** cohortes, fertilidad, esperanza de vida, migración, participación laboral, capacidades, educación, sanidad, vivienda, alimentación, agua, ciudades, protesta y opinión pública.
+- **Instituciones y poder:** capacidad estatal, burocracia, justicia, medios, narrativas, corrupción, crimen, economía informal, líderes, salud del dirigente, sucesión y cohesión de élites.
+- **Diplomacia e inteligencia:** relaciones multidimensionales, objetivos, líneas rojas, influencia, poder blando, estimaciones con confianza, contrainteligencia, ciber y niebla de guerra.
+- **IA estratégica moderada:** cada Estado prioriza seguridad, prosperidad o supervivencia. La referencia global de ocho conflictos interestatales nuevos por año se aplica como probabilidad condicionada, no como guerra automática.
+- **Guerra operacional:** mando, preparación, suministro, combustible, munición, repuestos, moral, superioridad aérea, fases operativas, riesgo civil, bajas, ocupación, resistencia y modelos alternativos de integración.
+- **Interfaz explicable:** el nuevo panel **Sistemas** muestra causas del crecimiento, inflación y aprobación; mercados, empresas, sociedad, instituciones, estrategia exterior, riesgos y decisiones accionables.
 
 ## Evolución principal de Strategic Command v2.0.0
 
@@ -171,7 +184,7 @@ Después abre `http://localhost:8000`.
 
 ## GitHub Pages
 
-1. Descomprime `NEXUS_Global_Strategic_Command_v2.0.0_GitHub.zip`.
+1. Descomprime `NEXUS_Global_Strategic_Command_v5.0.0_GitHub.zip`.
 2. Sube **todos los archivos y carpetas interiores** a la raíz del repositorio.
 3. Activa `Settings → Pages → Deploy from a branch → main → / (root)`.
 4. Espera al despliegue y realiza una recarga forzada.
@@ -180,7 +193,7 @@ El ZIP ya tiene `index.html` en la raíz. GitHub no descomprime ZIP automáticam
 
 ## Guardados
 
-Strategic Command v2.0.0 utiliza la clave base `nexus_alpha_v2_0_0_save`, añade el identificador de la cuenta activa y migra guardados desde v1.9.0 y anteriores. **Reiniciar campaña** solo elimina la partida de la cuenta actual.
+Strategic Command v5.0.0 utiliza la clave base `nexus_strategic_v5_0_0_save`, añade el identificador de la cuenta activa y migra guardados desde v2.0.0 y anteriores. **Reiniciar campaña** solo elimina la partida de la cuenta actual.
 
 ## Nota de simulación
 

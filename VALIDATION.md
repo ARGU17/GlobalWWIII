@@ -1,4 +1,17 @@
-# Validación técnica — Strategic Command v2.0.0
+# Validación técnica — Strategic Command v5.0.0
+
+## Validación v5.0 ejecutada
+
+- Sintaxis validada para todos los módulos `js/v5/*.js`, `ui.js` y `app.js`.
+- Batería histórica completa ejecutada sin regresiones.
+- Prueba `tests/v50-validation.js`: 23 sistemas, 197 países, 95 días, migración y determinismo validados.
+- Mercados de nueve productos, empresas agentes, cohortes, instituciones, redes energéticas y logística militar presentes desde el estado inicial.
+- Anexión verificada con transferencia de población, PIB, empresas, productos, cohortes y soberanía; ocupación y decisión política generadas.
+- Dos campañas con la misma semilla producen la misma firma de PIB, inflación, productos, índices mundiales y sistemas ejecutados.
+- Todos los valores numéricos permanecen finitos y los balances físicos no se vuelven negativos.
+- Interfaz local: arranque sin panel de error, mapa disponible y panel **Sistemas** renderizado con productos, empresas, causalidad y riesgos.
+- Fluidez de navegador: 13 días a x32 en 4,3 segundos, con pausa inmediata e interfaz sensible.
+- El país y la región seleccionados permanecieron estables durante 95 días de avance.
 
 ## Validaciones ejecutadas
 
