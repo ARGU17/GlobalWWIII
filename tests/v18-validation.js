@@ -4,11 +4,11 @@ const root=path.resolve(__dirname,"..");
 global.window=global;
 if(!global.crypto)global.crypto=require("crypto").webcrypto;
 if(!global.performance)global.performance={now:()=>Date.now()};
-for(const file of ["world-data.js","data.js","catalog.js","politics.js","economy.js","simulation-plus.js","deep-systems.js","alpha-v13.js","alpha-v14.js","alpha-v15.js","alpha-v16.js","alpha-v17.js","alpha-v18.js"]){
+for(const file of ["world-data.js","data.js","catalog.js","politics.js","economy.js","simulation-plus.js","deep-systems.js","alpha-v13.js","alpha-v14.js","alpha-v15.js","alpha-v16.js","alpha-v17.js","alpha-v18.js","alpha-v19.js"]){
   vm.runInThisContext(fs.readFileSync(path.join(root,"js",file),"utf8"),{filename:file});
 }
 const E=NEXUS_ECONOMY,assert=(v,m)=>{if(!v)throw new Error(m)},s=E.createInitialState(),c=E.getCountry(s,"ESP");
-assert(s.version==="1.8.2-alpha","Versión incorrecta");
+assert(s.version==="1.9.0-alpha","Versión incorrecta");
 const low=E.calculateResearchRate(s,c);c.budgets.research+=5;const high=E.calculateResearchRate(s,c);
 assert(high>low,"I+D no responde a la inversión");
 assert(/Austin|Louisiana/.test(E.getCountryRegions(s,"USA").map(r=>r.name).join(" ")),"Regiones de EEUU sin nombres reales");

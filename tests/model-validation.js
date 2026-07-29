@@ -11,7 +11,7 @@ if (!global.performance) global.performance = { now: () => Date.now() };
 
 for (const file of [
   "world-data.js","data.js","catalog.js","politics.js","economy.js",
-  "simulation-plus.js","deep-systems.js","alpha-v13.js","alpha-v14.js","alpha-v15.js","alpha-v16.js","alpha-v17.js","alpha-v18.js"
+  "simulation-plus.js","deep-systems.js","alpha-v13.js","alpha-v14.js","alpha-v15.js","alpha-v16.js","alpha-v17.js","alpha-v18.js","alpha-v19.js","alpha-v20.js"
 ]) {
   vm.runInThisContext(fs.readFileSync(path.join(root,"js",file),"utf8"), { filename:file });
 }
@@ -21,7 +21,7 @@ const C = global.NEXUS_CATALOG;
 const assert = (condition,message) => { if (!condition) throw new Error(message); };
 
 const state = E.createInitialState();
-assert(state.version === "1.8.2-alpha", "Versión incorrecta");
+assert(state.version === "2.0.0-alpha", "Versión incorrecta");
 assert(state.countries.length === 197, "Deben existir 197 países");
 assert(state.companies.length >= 170, "Bolsa insuficientemente ampliada");
 assert(C.buildings.length >= 40, "Catálogo industrial insuficiente");
