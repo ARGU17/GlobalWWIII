@@ -1,10 +1,11 @@
 "use strict";
 
 window.NEXUS_MAP_ENGINE = (() => {
-  const TILE_SIZE=256,MIN_ZOOM=1,MAX_ZOOM=9;
+  const TILE_SIZE=256,MIN_ZOOM=1.35,MAX_ZOOM=9;
   let state,callbacks={},canvas,ctx,tooltip,geojson={features:[]},regionGeojson={features:[]},width=0,height=0,dpr=1;
   let camera={lat:18,lng:8,zoom:2};
-  let dragging=false,lastPointer=null,hitCountries=[],hitRegions=[],hitMarkers=[],tileCache=new Map(),needsRender=true,frame=null;
+  let dragging=false,lastPointer=null,hitCountries=[],hitRegions=[],hitMarkers=[],tileCache=new Map(),needsRender=true,frame=null,lastDrawAt=0;
+  let geometryCache=new WeakMap(),countryIndex=new Map(),unitPhotoCache=new Map();
   const markerEmoji={housing:"🏘",hospital:"✚",university:"🎓",autoPlant:"🚗",steelPlant:"🏗",chipFab:"▦",shipyard:"⚓",aerospace:"✈",solar:"☀",wind:"✣",nuclear:"☢",grid:"⚡",rail:"═",port:"⚓",airbase:"▲",navalBase:"≈",cyberCenter:"◆",foodPlant:"🥫",agriHub:"🌾",pharmaPlant:"💊",biotechCampus:"🧬",refinery:"🛢",oilField:"🛢",gasField:"🔥",lngTerminal:"🚢",petrochemical:"⚗",chemicalPlant:"🧪",fertilizerPlant:"🌱",cementPlant:"🏗",copperMine:"⛏",lithiumMine:"🔋",batteryGigafactory:"🔋",electronicsPlant:"📱",machineTools:"⚙",textileCluster:"🧵",dataCenter:"▦",desalination:"💧",hydroPlant:"🌊",geothermal:"🌋",hydrogenPlant:"H₂",recyclingHub:"♻",defensePlant:"🛡"};
   const unitEmoji={infantry:"◆",mechanized:"▣",armor:"▰",artillery:"✦",airDefense:"⌁",rocketArtillery:"✹",fighter:"▲",drone:"◇",bomber:"▼",transport:"✈",frigate:"≈",destroyer:"≋",submarine:"◒",carrier:"▱",satellite:"✧",missile:"↟",cyber:"⌘"};
 
@@ -13,7 +14,7 @@ window.NEXUS_MAP_ENGINE = (() => {
     canvas=document.getElementById("strategicMap");tooltip=document.getElementById("mapTooltip");
     if(!canvas||canvas.tagName!=="CANVAS")throw new Error("El mapa requiere <canvas id=\"strategicMap\">.");
     ctx=canvas.getContext("2d",{alpha:false});
-    camera.lat=state.mapCenter?.[0]??18;camera.lng=state.mapCenter?.[1]??8;camera.zoom=state.mapZoom??2;
+    camera.lat=state.mapCenter?.[0]??16;camera.lng=state.mapCenter?.[1]??8;camera.zoom=state.mapZoom??2;
     bindEvents();resize();loadWorld();loadSpainRegions();startLoop();
   }
 
@@ -56,15 +57,17 @@ window.NEXUS_MAP_ENGINE = (() => {
     canvas.addEventListener("click",clickMap);
     document.getElementById("mapZoomIn")?.addEventListener("click",()=>zoomAt(width/2,height/2,.6));
     document.getElementById("mapZoomOut")?.addEventListener("click",()=>zoomAt(width/2,height/2,-.6));
-    document.getElementById("mapReset")?.addEventListener("click",()=>{camera={lat:18,lng:8,zoom:2};persistCamera();needsRender=true});
+    document.getElementById("mapReset")?.addEventListener("click",showWorld);
     document.getElementById("mapBaseToggle")?.addEventListener("click",()=>{state.mapBase=state.mapBase==="vector"?"osm":"vector";needsRender=true});
   }
 
-  function resize(){const rect=canvas.getBoundingClientRect();dpr=Math.min(2,window.devicePixelRatio||1);width=Math.max(300,Math.round(rect.width));height=Math.max(260,Math.round(rect.height));canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);needsRender=true}
-  function startLoop(){if(frame)return;const loop=()=>{if(needsRender||state?.wars?.some(w=>!w.ended)||(state?.running&&state?.tradeRoutes?.length)){draw();needsRender=false}frame=requestAnimationFrame(loop)};frame=requestAnimationFrame(loop)}
+  function resize(){const rect=canvas.getBoundingClientRect();dpr=Math.min(2,window.devicePixelRatio||1);width=Math.max(300,Math.round(rect.width));height=Math.max(260,Math.round(rect.height));canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);camera.zoom=Math.max(minimumZoom(),camera.zoom);persistCamera();geometryCache=new WeakMap();needsRender=true}
+  function startLoop(){if(frame)return;const loop=ts=>{const dynamic=state?.settings?.mapAnimations!==false&&state?.mapLayer==="military"&&state?.wars?.some(w=>!w.ended);if(!document.hidden&&(needsRender||(dynamic&&ts-lastDrawAt>=250))){draw();lastDrawAt=ts;needsRender=false}frame=requestAnimationFrame(loop)};frame=requestAnimationFrame(loop)}
   function render(){needsRender=true}
 
   function worldSize(z=camera.zoom){return TILE_SIZE*Math.pow(2,z)}
+  function minimumZoom(){return Math.max(MIN_ZOOM,Math.min(3.15,Math.log2(Math.max(360,width*.9)/TILE_SIZE)))}
+  function worldZoom(){return Math.max(minimumZoom(),Math.min(3.35,Math.log2(Math.max(520,width*1.34)/TILE_SIZE)))}
   function project(lat,lng,z=camera.zoom){const size=worldSize(z);const sin=Math.sin(clampLat(lat)*Math.PI/180);return{x:(lng+180)/360*size,y:(.5-Math.log((1+sin)/(1-sin))/(4*Math.PI))*size}}
   function unproject(x,y,z=camera.zoom){const size=worldSize(z);const lng=x/size*360-180;const n=Math.PI-2*Math.PI*y/size;const lat=180/Math.PI*Math.atan(.5*(Math.exp(n)-Math.exp(-n)));return{lat:clampLat(lat),lng:normalizeLng(lng)}}
   function clampLat(v){return Math.max(-85.0511,Math.min(85.0511,v))}
@@ -74,10 +77,11 @@ window.NEXUS_MAP_ENGINE = (() => {
   function screenToGeo(x,y){const c=centerWorld();return unproject(c.x+(x-width/2),c.y+(y-height/2))}
 
   function panBy(dx,dy){const c=centerWorld(),next=unproject(c.x-dx,c.y-dy);camera.lat=next.lat;camera.lng=next.lng;persistCamera();needsRender=true}
-  function zoomAt(x,y,delta){const before=screenToGeo(x,y);camera.zoom=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,camera.zoom+delta));const after=screenToGeo(x,y);camera.lat=clampLat(camera.lat+(before.lat-after.lat));camera.lng=normalizeLng(camera.lng+(before.lng-after.lng));persistCamera();needsRender=true}
-  function persistCamera(){if(!state)return;state.mapCenter=[camera.lat,camera.lng];state.mapZoom=camera.zoom}
+  function zoomAt(x,y,delta){const before=screenToGeo(x,y);camera.zoom=Math.max(minimumZoom(),Math.min(MAX_ZOOM,camera.zoom+delta));const after=screenToGeo(x,y);camera.lat=clampLat(camera.lat+(before.lat-after.lat));camera.lng=normalizeLng(camera.lng+(before.lng-after.lng));persistCamera();needsRender=true}
+  function showWorld(){camera={lat:14,lng:8,zoom:worldZoom()};state.mapMode="world";persistCamera();needsRender=true}
+  function persistCamera(){if(!state)return;state.mapCenter=[camera.lat,camera.lng];state.mapZoom=camera.zoom;const list=document.getElementById("mapRegionList");if(list)list.hidden=["military","industry"].includes(state.mapLayer)||(state.mapMode!=="regions"&&camera.zoom<4.55)}
 
-  function draw(){if(!ctx)return;hitMarkers=[];hitRegions=[];ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);drawBackground();drawTiles();drawAtmosphere();drawCountries();const layer=state.mapLayer||"political";if(!["military","industry"].includes(layer)){drawRegions();drawTradeRoutes()}if(layer==="industry")drawFacilities();if(layer==="military"){drawUnits();drawWars()}drawHUD();ctx.restore()}
+  function draw(){if(!ctx)return;countryIndex=new Map((state.countries||[]).map(c=>[c.id,c]));hitMarkers=[];hitRegions=[];ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);drawBackground();drawTiles();drawAtmosphere();drawGrid();drawCountries();const layer=state.mapLayer||"political";if(!["military","industry"].includes(layer)){drawRegions();drawTradeRoutes()}if(layer==="industry")drawFacilities();if(layer==="military"){drawUnits();drawWars();drawCampaigns()}drawHUD();ctx.restore()}
   function drawBackground(){const g=ctx.createLinearGradient(0,0,0,height);g.addColorStop(0,"#061725");g.addColorStop(.55,"#082437");g.addColorStop(1,"#04111d");ctx.fillStyle=g;ctx.fillRect(0,0,width,height)}
 
   function drawTiles(){if(state?.mapBase==="vector")return;const z=Math.max(1,Math.min(7,Math.floor(camera.zoom)));const zScale=Math.pow(2,camera.zoom-z);const centerZ=project(camera.lat,camera.lng,z);const viewW=width/zScale,viewH=height/zScale;const left=centerZ.x-viewW/2,top=centerZ.y-viewH/2;const minX=Math.floor(left/TILE_SIZE),maxX=Math.floor((left+viewW)/TILE_SIZE),minY=Math.floor(top/TILE_SIZE),maxY=Math.floor((top+viewH)/TILE_SIZE);const n=Math.pow(2,z);
@@ -88,9 +92,12 @@ window.NEXUS_MAP_ENGINE = (() => {
   function getTile(z,x,y){const key=`${z}/${x}/${y}`;if(tileCache.has(key))return tileCache.get(key);if(tileCache.size>260){const first=tileCache.keys().next().value;tileCache.delete(first)}const img=new Image();img.decoding="async";img.onload=()=>{needsRender=true};img.onerror=()=>{img.failed=true};img.src=`https://tile.openstreetmap.org/${z}/${x}/${y}.png`;tileCache.set(key,img);return img}
   function drawAtmosphere(){ctx.fillStyle=state?.mapBase==="vector"?"rgba(2,13,23,.05)":"rgba(2,10,18,.38)";ctx.fillRect(0,0,width,height);const g=ctx.createRadialGradient(width*.5,height*.45,50,width*.5,height*.45,Math.max(width,height)*.7);g.addColorStop(0,"rgba(58,146,189,.02)");g.addColorStop(1,"rgba(0,5,12,.32)");ctx.fillStyle=g;ctx.fillRect(0,0,width,height)}
 
-  function drawCountries(){hitCountries=[];for(const feature of geojson.features||[]){const id=feature.properties?.ISO3;if(!id)continue;const country=state.countries.find(c=>c.id===id);if(!country)continue;const owner=country.annexedBy?state.countries.find(c=>c.id===country.annexedBy)||country:country,selected=owner.id===state.selectedCountryId,controlled=owner.id===state.controlledCountryId;const paths=geometryPaths(feature.geometry);for(const path of paths){if(!path)continue;ctx.save();ctx.fillStyle=countryColor(owner);ctx.globalAlpha=selected?.62:controlled?.5:camera.zoom<3?.38:.22;ctx.fill(path);ctx.globalAlpha=country.sovereign===false?.16:selected||controlled?1:.74;ctx.strokeStyle=country.sovereign===false?countryColor(owner):selected?"#ffffff":controlled?"#ffe66d":"#7dc8e5";ctx.lineWidth=country.sovereign===false?.2:selected?2.2:controlled?1.8:.55;ctx.stroke(path);ctx.restore();hitCountries.push({path,country:owner})}
+  function drawGrid(){if(state?.settings?.mapGrid===false)return;ctx.save();ctx.strokeStyle="rgba(93,181,216,.085)";ctx.lineWidth=.65;ctx.setLineDash([2,7]);for(let lat=-60;lat<=60;lat+=20){const points=[];for(let lng=-180;lng<=180;lng+=5)points.push(toScreen(lat,lng));ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}for(let lng=-180;lng<180;lng+=30){const points=[];for(let lat=-80;lat<=80;lat+=4)points.push(toScreen(lat,lng));ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}ctx.restore()}
+
+  function drawCountries(){hitCountries=[];for(const feature of geojson.features||[]){const id=feature.properties?.ISO3;if(!id)continue;const country=countryIndex.get(id);if(!country)continue;const owner=country.annexedBy?countryIndex.get(country.annexedBy)||country:country,selected=owner.id===state.selectedCountryId,controlled=owner.id===state.controlledCountryId;const paths=cachedGeometryPaths(feature.geometry);for(const path of paths){if(!path)continue;ctx.save();ctx.fillStyle=countryColor(owner);ctx.globalAlpha=selected?.62:controlled?.5:camera.zoom<3?.38:.22;ctx.fill(path);ctx.globalAlpha=country.sovereign===false?.16:selected||controlled?1:.74;ctx.strokeStyle=country.sovereign===false?countryColor(owner):selected?"#ffffff":controlled?"#ffe66d":"#7dc8e5";ctx.lineWidth=country.sovereign===false?.2:selected?2.2:controlled?1.8:.55;ctx.stroke(path);ctx.restore();hitCountries.push({path,country:owner})}
       if(country.sovereign!==false&&camera.zoom>3.4&&state.settings?.showMapLabels!==false&&country.economy.gdp>80){const p=toScreen(country.map.lat,country.map.lng);drawLabel(p.x,p.y,country.name,selected||controlled?"#fff":"#c8e6f3",selected?12:9)}
     }}
+  function cachedGeometryPaths(geometry){if(!geometry)return[];const key=`${width}:${height}:${camera.lat.toFixed(5)}:${camera.lng.toFixed(5)}:${camera.zoom.toFixed(4)}`,cached=geometryCache.get(geometry);if(cached?.key===key)return cached.paths;const paths=geometryPaths(geometry);geometryCache.set(geometry,{key,paths});return paths}
   function geometryPaths(geometry){
     if(!geometry)return[];
     if(geometry.type==="Point"){
@@ -110,8 +117,9 @@ window.NEXUS_MAP_ENGINE = (() => {
         }
         projectedRings.push(pts);
       }
-      const midpoint=(polyMin+polyMax)/2,baseShift=Math.round((center.x-midpoint)/size)*size;
-      for(const worldShift of [baseShift-size,baseShift,baseShift+size]){
+      const midpoint=(polyMin+polyMax)/2,baseShift=Math.round((center.x-midpoint)/size)*size,wraps=Math.max(1,Math.ceil(width/size)+1);
+      for(let wrap=-wraps;wrap<=wraps;wrap++){
+        const worldShift=baseShift+wrap*size;
         const screenMin=width/2+(polyMin+worldShift-center.x),screenMax=width/2+(polyMax+worldShift-center.x);
         if(screenMax<-80||screenMin>width+80)continue;
         const path=new Path2D();
@@ -121,7 +129,7 @@ window.NEXUS_MAP_ENGINE = (() => {
     }
     return result;
   }
-  function countryColor(c){const owner=c.annexedBy?state.countries.find(x=>x.id===c.annexedBy)||c:c,layer=state.mapLayer||"political";if(layer==="political")return owner.color||"#4d8fd8";if(layer==="economy")return heat(owner.economy.gdp,1,30000,"#214562","#ffd75f");if(layer==="military")return "#142536";if(layer==="industry")return "#132c31";if(layer==="technology")return heat(owner.systems.technology,10,100,"#252d61","#4de4ff");if(layer==="stability")return heat(owner.systems.stability,20,98,"#7b3345","#45d58a");return owner.color}
+  function countryColor(c){const owner=c.annexedBy?countryIndex.get(c.annexedBy)||c:c,layer=state.mapLayer||"political";if(layer==="political")return owner.color||"#4d8fd8";if(layer==="economy")return heat(owner.economy.gdp,1,30000,"#214562","#ffd75f");if(layer==="military")return "#142536";if(layer==="industry")return "#132c31";if(layer==="technology")return heat(owner.systems.technology,10,100,"#252d61","#4de4ff");if(layer==="stability")return heat(owner.systems.stability,20,98,"#7b3345","#45d58a");return owner.color}
   function heat(v,min,max,a,b){const t=Math.max(0,Math.min(1,(Math.log1p(v)-Math.log1p(min))/(Math.log1p(max)-Math.log1p(min))));const A=hex(a),B=hex(b);return`rgb(${Math.round(A[0]+(B[0]-A[0])*t)},${Math.round(A[1]+(B[1]-A[1])*t)},${Math.round(A[2]+(B[2]-A[2])*t)})`}
   function hex(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
 
@@ -136,7 +144,7 @@ window.NEXUS_MAP_ENGINE = (() => {
       for(const feature of regionGeojson.features){
         const region=regions.find(r=>r.id===feature.properties?.regionId);if(!region)continue;
         const selected=region.id===state.selectedRegionId,controlled=(region.controllerId||country.id)===state.controlledCountryId;
-        for(const path of geometryPaths(feature.geometry)){
+        for(const path of cachedGeometryPaths(feature.geometry)){
           ctx.save();ctx.fillStyle=selected?"rgba(255,220,82,.35)":controlled?"rgba(55,207,148,.20)":"rgba(45,178,220,.17)";ctx.fill(path);
           ctx.strokeStyle=selected?"#ffe46a":controlled?"#63e8b0":"#63d6f0";ctx.lineWidth=selected?2.5:1.15;ctx.stroke(path);ctx.restore();
           hitRegions.push({path,region,country});
@@ -191,18 +199,30 @@ window.NEXUS_MAP_ENGINE = (() => {
     const show=new Set([state.controlledCountryId,state.selectedCountryId]);
     for(const country of state.countries){
       if(state.mapLayer!=="military"&&!show.has(country.id)&&camera.zoom<5.8)continue;
-      for(const unit of country.units||[]){
+      if(state.mapLayer==="military"&&camera.zoom>=3.2&&!show.has(country.id)&&!(country.units||[]).some(unit=>unit.movement))continue;
+      const available=(country.units||[]).filter(unit=>unit.quantity>0),moving=available.filter(unit=>unit.movement);
+      const visible=camera.zoom<3.2?[...moving,...available.filter(unit=>!moving.includes(unit)).sort((a,b)=>(b.quantity||0)-(a.quantity||0)).slice(0,show.has(country.id)?2:1)]:available;
+      for(let unitIndex=0;unitIndex<visible.length;unitIndex++){
+        const unit=visible[unitIndex];
         if(unit.quantity<=0)continue;
         let lat=unit.lat??country.map.lat,lng=unit.lng??country.map.lng;
         if(unit.movement){const m=unit.movement,t=Math.max(0,Math.min(1,(m.progress||0)+(1/Math.max(1,m.totalDays||1))*clockFraction()));lat=(m.startLat??lat)+((m.endLat??lat)-(m.startLat??lat))*t;let dl=normalizeLng((m.endLng??lng)-(m.startLng??lng));lng=normalizeLng((m.startLng??lng)+dl*t);const a=toScreen(m.startLat??lat,m.startLng??lng),b=toScreen(m.endLat??lat,m.endLng??lng);ctx.save();ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.setLineDash([5,6]);ctx.strokeStyle=m.mode==="attack"?"rgba(255,86,99,.9)":"rgba(85,220,255,.72)";ctx.lineWidth=1.7;ctx.stroke();ctx.restore()}
-        const p=toScreen(lat,lng);if(p.x<-30||p.x>width+30||p.y<-30||p.y>height+30)continue;
+        const p=toScreen(lat,lng);
+        if(camera.zoom>=3.2&&!unit.movement){const columns=Math.min(5,Math.max(1,visible.length)),col=unitIndex%columns,row=Math.floor(unitIndex/columns),rows=Math.ceil(visible.length/columns);p.x+=(col-(columns-1)/2)*52;p.y+=(row-(rows-1)/2)*39}
+        else if(camera.zoom<3.2&&visible.length>1){p.x+=(unitIndex-(visible.length-1)/2)*24}
+        if(p.x<-40||p.x>width+40||p.y<-40||p.y>height+40)continue;
         const def=state.unitCatalog.find(x=>x.id===unit.typeId),attack=unit.movement?.mode==="attack";
-        ctx.save();ctx.beginPath();ctx.roundRect(p.x-17,p.y-13,34,26,6);ctx.fillStyle="rgba(7,18,28,.95)";ctx.fill();ctx.strokeStyle=attack?"#ff5969":country.id===state.controlledCountryId?"#ffe063":"#65d8ff";ctx.lineWidth=1.7;ctx.stroke();ctx.font="bold 12px system-ui";ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(unitEmoji[unit.typeId]||"◆",p.x-7,p.y);ctx.font="bold 7px system-ui";ctx.fillText(shortQty(unit.quantity),p.x+8,p.y);ctx.restore();
+        const photo=getUnitPhoto(unit.photo||def?.photo||def?.icon);
+        ctx.save();ctx.beginPath();ctx.roundRect(p.x-23,p.y-17,46,34,7);ctx.fillStyle="rgba(7,18,28,.96)";ctx.fill();ctx.save();ctx.beginPath();ctx.roundRect(p.x-21,p.y-15,32,30,5);ctx.clip();
+        if(photo?.complete&&photo.naturalWidth){const scale=Math.max(32/photo.naturalWidth,30/photo.naturalHeight),sw=32/scale,sh=30/scale,sx=(photo.naturalWidth-sw)/2,sy=(photo.naturalHeight-sh)/2;ctx.drawImage(photo,sx,sy,sw,sh,p.x-21,p.y-15,32,30)}
+        else{ctx.fillStyle="#122a38";ctx.fillRect(p.x-21,p.y-15,32,30);ctx.font="bold 14px system-ui";ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(def?.mapGlyph||unitEmoji[unit.typeId]||"◆",p.x-5,p.y)}ctx.restore();
+        ctx.beginPath();ctx.roundRect(p.x-23,p.y-17,46,34,7);ctx.strokeStyle=attack?"#ff5969":country.id===state.controlledCountryId?"#ffe063":"#65d8ff";ctx.lineWidth=1.8;ctx.stroke();ctx.fillStyle="rgba(3,11,17,.9)";ctx.fillRect(p.x+11,p.y-15,10,30);ctx.font="bold 7px system-ui";ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(shortQty(unit.quantity),p.x+16,p.y);ctx.restore();
         const region=window.NEXUS_ECONOMY?.getRegion?.(state,country.id,unit.regionId);
-        hitMarkers.push({x:p.x,y:p.y,r:19,html:`<strong>${def?.name||unit.typeId}</strong><span>${unit.quantity.toLocaleString("es-ES")} ${def?.unitName||"unidades"}</span><span>${region?.name||"En despliegue"} · Preparación ${(unit.readiness||0).toFixed(0)}%</span><span>${unit.status||"desplegada"}${unit.movement?` · ${unit.movement.daysRemaining} días`:""}</span>`});
+        hitMarkers.push({x:p.x,y:p.y,r:25,html:`<strong>${unit.modelName||unit.displayName||unit.name||def?.name||unit.typeId}</strong>${unit.formationName?`<span>${unit.formationName}</span>`:""}<span>${unit.quantity.toLocaleString("es-ES")} ${def?.unitName||"unidades"} · ${unit.generation||"plataforma operativa"}</span><span>${region?.name||"En despliegue"} · Preparación ${(unit.readiness||0).toFixed(0)}%</span><span>${unit.status||"desplegada"}${unit.movement?` · ${unit.movement.daysRemaining} días`:""}</span>`});
       }
     }
   }
+  function getUnitPhoto(src){if(!src||!/^assets\//.test(src))return null;if(unitPhotoCache.has(src))return unitPhotoCache.get(src);const img=new Image();img.decoding="async";img.onload=()=>{needsRender=true};img.onerror=()=>{img.failed=true;needsRender=true};img.src=src;unitPhotoCache.set(src,img);return img}
   function shortQty(v){if(v>=1e6)return`${(v/1e6).toFixed(1)}M`;if(v>=1000)return`${(v/1000).toFixed(v>=10000?0:1)}k`;return String(v)}
 
   function drawWars(){
@@ -218,7 +238,20 @@ window.NEXUS_MAP_ENGINE = (() => {
     }
   }
 
-  function drawHUD(){ctx.save();ctx.fillStyle="rgba(4,15,24,.82)";ctx.fillRect(10,height-32,310,22);ctx.font="9px system-ui";ctx.fillStyle="#b8d5e4";ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText(`Zoom ${camera.zoom.toFixed(1)} · ${state.mapBase==="vector"?"Mapa vectorial local":"OpenStreetMap + límites Natural Earth"} · Comunidades y rutas comerciales`,18,height-21);ctx.restore()}
+  function drawCampaigns(){
+    const now=Date.now();
+    for(const war of state.wars||[])for(const op of war.campaigns||[]){
+      if(op.status!=="active"||!op.from||!op.to)continue;
+      const p0=toScreen(op.from[0],op.from[1]),p2=toScreen(op.to[0],op.to[1]),p1={x:(p0.x+p2.x)/2,y:(p0.y+p2.y)/2-Math.min(110,35+Math.abs(p2.x-p0.x)*.1)},t=clampNumber((op.progress||0)/100,0,1),p=curvePoint(p0,p1,p2,t);
+      const color=op.side==="attacker"?"#ff6575":"#67d9ff";
+      ctx.save();ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.quadraticCurveTo(p1.x,p1.y,p2.x,p2.y);ctx.setLineDash([4,7]);ctx.lineDashOffset=-(now/110)%11;ctx.strokeStyle=color;ctx.globalAlpha=.82;ctx.lineWidth=2.2;ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+      ctx.beginPath();ctx.arc(p.x,p.y,16+Math.sin(now/180)*1.4,0,Math.PI*2);ctx.fillStyle="rgba(4,16,26,.96)";ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.stroke();ctx.font="15px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";ctx.fillText(op.icon||"⚔",p.x,p.y);ctx.restore();
+      hitMarkers.push({x:p.x,y:p.y,r:23,html:`<strong>${op.icon||"⚔"} ${op.name}</strong><span>${op.domain} · ${op.side==="attacker"?"bando atacante":"bando defensor"}</span><span>Objetivo: ${op.targetName||"teatro enemigo"}</span><span>Progreso ${(op.progress||0).toFixed(0)}% · día ${op.days||0}/${op.totalDays||1}</span>`});
+    }
+  }
+  function clampNumber(v,a,b){return Math.max(a,Math.min(b,Number(v)||0))}
+
+  function drawHUD(){ctx.save();ctx.fillStyle="rgba(4,15,24,.86)";ctx.fillRect(10,height-36,420,26);ctx.font="9px system-ui";ctx.fillStyle="#b8d5e4";ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText(`TABLERO FIJO · Zoom ${camera.zoom.toFixed(1)} · ${state.mapLayer||"political"} · arrastra, rueda y selecciona objetivos`,18,height-23);ctx.restore()}
   function drawLabel(x,y,text,color,size){ctx.save();ctx.font=`700 ${size}px system-ui`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineWidth=3;ctx.strokeStyle="rgba(2,10,16,.9)";ctx.strokeText(text,x,y);ctx.fillStyle=color;ctx.fillText(text,x,y);ctx.restore()}
 
   function hover(e){
@@ -247,7 +280,7 @@ window.NEXUS_MAP_ENGINE = (() => {
     const c=state.countries.find(x=>x.id===id);if(!c)return;
     const feature=(geojson.features||[]).find(f=>f.properties?.ISO3===id);let bounds=feature?geometryBounds(feature.geometry):null;
     camera.lat=bounds?.lat??c.map?.lat??0;camera.lng=bounds?.lng??c.map?.lng??0;
-    if(bounds){const zLng=Math.log2((width*.72*360)/(TILE_SIZE*Math.max(2,bounds.lngSpan))),zLat=Math.log2((height*.65*170)/(TILE_SIZE*Math.max(1,bounds.latSpan)));camera.zoom=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,Math.min(zLng,zLat)))}
+    if(bounds){const zLng=Math.log2((width*.72*360)/(TILE_SIZE*Math.max(2,bounds.lngSpan))),zLat=Math.log2((height*.65*170)/(TILE_SIZE*Math.max(1,bounds.latSpan)));camera.zoom=Math.max(minimumZoom(),Math.min(MAX_ZOOM,Math.min(zLng,zLat)))}
     else camera.zoom=id==="ESP"?5:3.7;
     if(id==="ESP")camera.zoom=Math.max(camera.zoom,4.8);persistCamera();needsRender=true;
   }
@@ -256,5 +289,5 @@ window.NEXUS_MAP_ENGINE = (() => {
     const region=window.NEXUS_ECONOMY?.getRegion?.(state,countryId,regionId);if(!region)return;camera.lat=region.lat;camera.lng=region.lng;camera.zoom=countryId==="ESP"?6.4:5.6;persistCamera();needsRender=true;
   }
 
-  return{initialize,render,focusCountry,focusRegion};
+  return{initialize,render,focusCountry,focusRegion,showWorld};
 })();

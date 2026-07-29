@@ -22,25 +22,26 @@
   const oldTradeAction = E.tradeAction;
   const clamp = E.clamp;
   const round = E.round;
+  const hydratedRuntimeStates = new WeakSet();
 
   const unitEconomics = {
-    infantry:{unitCost:.00011,unitName:"efectivos",productionDays:22,icon:"◆"},
-    mechanized:{unitCost:.0065,unitName:"vehículos",productionDays:55,icon:"▣"},
-    armor:{unitCost:.013,unitName:"carros",productionDays:70,icon:"▰"},
-    artillery:{unitCost:.0048,unitName:"piezas",productionDays:48,icon:"✦"},
-    airDefense:{unitCost:.011,unitName:"sistemas",productionDays:65,icon:"⌁"},
-    rocketArtillery:{unitCost:.0075,unitName:"lanzadores",productionDays:60,icon:"✹"},
-    fighter:{unitCost:.095,unitName:"aeronaves",productionDays:120,icon:"▲"},
-    drone:{unitCost:.0017,unitName:"drones",productionDays:25,icon:"◇"},
-    bomber:{unitCost:.19,unitName:"aeronaves",productionDays:180,icon:"▼"},
-    transport:{unitCost:.12,unitName:"aeronaves",productionDays:150,icon:"✈"},
-    frigate:{unitCost:1.15,unitName:"buques",productionDays:620,icon:"≈"},
-    destroyer:{unitCost:1.85,unitName:"buques",productionDays:760,icon:"≋"},
-    submarine:{unitCost:1.70,unitName:"submarinos",productionDays:850,icon:"◒"},
-    carrier:{unitCost:8.50,unitName:"grupos aeronavales",productionDays:1450,icon:"▱"},
-    satellite:{unitCost:.36,unitName:"satélites",productionDays:220,icon:"✧"},
-    missile:{unitCost:.006,unitName:"misiles",productionDays:40,icon:"↟"},
-    cyber:{unitCost:.00024,unitName:"especialistas",productionDays:28,icon:"⌘"}
+    infantry:{unitCost:.00011,unitName:"efectivos",productionDays:22,mapGlyph:"◆"},
+    mechanized:{unitCost:.0065,unitName:"vehículos",productionDays:55,mapGlyph:"▣"},
+    armor:{unitCost:.013,unitName:"carros",productionDays:70,mapGlyph:"▰"},
+    artillery:{unitCost:.0048,unitName:"piezas",productionDays:48,mapGlyph:"✦"},
+    airDefense:{unitCost:.011,unitName:"sistemas",productionDays:65,mapGlyph:"⌁"},
+    rocketArtillery:{unitCost:.0075,unitName:"lanzadores",productionDays:60,mapGlyph:"✹"},
+    fighter:{unitCost:.095,unitName:"aeronaves",productionDays:120,mapGlyph:"▲"},
+    drone:{unitCost:.0017,unitName:"drones",productionDays:25,mapGlyph:"◇"},
+    bomber:{unitCost:.19,unitName:"aeronaves",productionDays:180,mapGlyph:"▼"},
+    transport:{unitCost:.12,unitName:"aeronaves",productionDays:150,mapGlyph:"✈"},
+    frigate:{unitCost:1.15,unitName:"buques",productionDays:620,mapGlyph:"≈"},
+    destroyer:{unitCost:1.85,unitName:"buques",productionDays:760,mapGlyph:"≋"},
+    submarine:{unitCost:1.70,unitName:"submarinos",productionDays:850,mapGlyph:"◒"},
+    carrier:{unitCost:8.50,unitName:"grupos aeronavales",productionDays:1450,mapGlyph:"▱"},
+    satellite:{unitCost:.36,unitName:"satélites",productionDays:220,mapGlyph:"✧"},
+    missile:{unitCost:.006,unitName:"misiles",productionDays:40,mapGlyph:"↟"},
+    cyber:{unitCost:.00024,unitName:"especialistas",productionDays:28,mapGlyph:"⌘"}
   };
 
 
@@ -240,7 +241,8 @@
       region.buildings=[...merged.values()];
     }
     normalizeFacilityCoordinates(state);
-    for(const def of state.unitCatalog){Object.assign(def,unitEconomics[def.id]||{unitCost:Math.max(.0001,(def.cost||1)/1000),unitName:"unidades",productionDays:60,icon:"◆"});def.stats ||= {attack:def.power||30,defense:def.power||30,range:40,mobility:50};}
+    for(const def of state.unitCatalog){Object.assign(def,unitEconomics[def.id]||{unitCost:Math.max(.0001,(def.cost||1)/1000),unitName:"unidades",productionDays:60,mapGlyph:"◆"});def.stats ||= {attack:def.power||30,defense:def.power||30,range:40,mobility:50};}
+    hydratedRuntimeStates.add(state);
     return state;
   }
 
@@ -266,7 +268,7 @@
   function getSelectedCountry(state){return state.countries.find(c=>c.id===state.selectedCountryId)||getCountry(state)}
 
   function tickDay(state){
-    hydrateV2(state);
+    if(!hydratedRuntimeStates.has(state))hydrateV2(state);
     const oldDate=new Date(`${state.date}T12:00:00Z`);
     const next=new Date(oldDate);next.setUTCDate(next.getUTCDate()+1);
     const crossed=next.getUTCMonth()!==oldDate.getUTCMonth();
@@ -303,11 +305,11 @@
 
   function completeUnitOrder(state,country,item){
     const p=item.regionId&&W.regionCapitals[item.regionId];
-    let group=country.units.find(u=>u.typeId===item.typeId&&(u.regionId||null)===(item.regionId||null));
+    let group=country.units.find(u=>u.typeId===item.typeId&&(u.regionId||null)===(item.regionId||null)&&(u.modelId||null)===(item.modelId||null));
     if(group){group.quantity+=item.quantity;group.readiness=Math.max(group.readiness,68);group.strength=100;}
-    else country.units.push({id:crypto.randomUUID(),typeId:item.typeId,regionId:item.regionId||null,name:item.name,quantity:item.quantity,readiness:68,experience:22,strength:100,status:"desplegada",lat:p?.[0]??country.map?.lat??0,lng:p?.[1]??country.map?.lng??0});
+    else country.units.push({id:crypto.randomUUID(),typeId:item.typeId,regionId:item.regionId||null,name:item.name,displayName:item.name,modelId:item.modelId||null,modelName:item.modelName||item.name,manufacturer:item.manufacturer||null,generation:item.generation||null,role:item.role||null,photo:item.photo||null,quantity:item.quantity,readiness:68,experience:22,strength:100,status:"desplegada",lat:p?.[0]??country.map?.lat??0,lng:p?.[1]??country.map?.lng??0});
     const def=state.unitCatalog.find(u=>u.id===item.typeId);
-    E.pushEvent(state,"military",`${def?.name||item.typeId} entregado`,`${item.quantity.toLocaleString("es-ES")} ${def?.unitName||"unidades"} entran en servicio.`);
+    E.pushEvent(state,"military",`${item.modelName||def?.name||item.typeId} entregado`,`${item.quantity.toLocaleString("es-ES")} ${def?.unitName||"unidades"} entran en servicio.`);
   }
 
   function completeFacilityOrder(state,country,item){

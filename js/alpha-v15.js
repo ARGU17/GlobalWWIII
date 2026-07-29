@@ -279,15 +279,17 @@
   }
 
   function tickDay(state){
-    reconcileConstructionLedger(state);
+    const hasActiveLedger=Object.values(state.constructionLedger||{}).some(x=>x.status==="active");
+    if(hasActiveLedger)reconcileConstructionLedger(state);
     const summary=oldTickDay(state);
+    const weekly=(state.dayIndex||0)%7===0;
     for (const c of state.countries) {
-      c.units.forEach((u,i)=>normalizeUnit(state,c,u,i));
-      c.productionQueue.forEach(q=>normalizeQueue(state,c,q));
-      ensurePoliticalSeats(c);
+      c.units.forEach((u,i)=>{if(!u.id||!u.countryId||!u.regionId||!Number.isFinite(u.quantity)||!Number.isFinite(u.readiness))normalizeUnit(state,c,u,i)});
+      c.productionQueue.forEach(q=>{if(!q.id||(["facilityV3","unitV2"].includes(q.kind)&&!Number.isFinite(q.daysRemaining)))normalizeQueue(state,c,q)});
+      if(weekly||c.politics?.parties?.some(p=>!Number.isFinite(p.seats)))ensurePoliticalSeats(c);
     }
     updateWarSettlements(state);
-    reconcileConstructionLedger(state);
+    if(hasActiveLedger)reconcileConstructionLedger(state);
     return summary;
   }
 
