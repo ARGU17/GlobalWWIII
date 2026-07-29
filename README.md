@@ -1,8 +1,19 @@
-# NEXUS Global — Strategic Command v5.1.0
+# NEXUS Global — Strategic Command v5.2.0
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
 
-## Evolución sistémica de Strategic Command v5.1.0
+## Evolución operacional de Strategic Command v5.2.0
+
+La v5.2 conserva íntegramente la simulación v5.1 y añade tres centros: **Operaciones v5.2**, **Conocimiento v5.2** y **Análisis v5.2**. El combate se resuelve por formaciones y capacidad física; la ocupación requiere una salida política; la información extranjera es incierta; tecnología, clima y crisis forman cadenas causales; y los indicadores pueden explicarse, compararse y proyectarse antes de decidir. Consulte [ARCHITECTURE_V52.md](ARCHITECTURE_V52.md).
+
+- **Mando operacional:** 11 escalones, 17 propiedades, 17 factores terrestres, 13 capacidades aéreas y 13 navales.
+- **Sostenimiento:** seis consumos diarios degradan movilidad, cadencia, moral y mantenimiento si falla el suministro.
+- **Posguerra:** 11 soluciones políticas, 12 variables de resistencia y dificultad proporcional al tamaño y capacidad estatal.
+- **Inteligencia:** valor real interno, estimación visible, intervalo, confianza, antigüedad, fuente y posible engaño.
+- **Conocimiento y clima:** diez dependencias, ocho vías de difusión, veinte ramas y doce variables ambientales.
+- **Análisis:** históricos, comparador, Sankey, nueve mapas, alertas, riesgos, escenarios antes/después, informes y diario.
+
+## Sistemas conservados de Strategic Command v5.1.0
 
 La v5.1 añade dos centros de mando completos: **Mercados v5.1** y **Sociedad v5.1**. En ellos se operan 21 mercados físicos, banca y moneda, empresas y plantas, energía y rutas; así como demografía, trabajo, ciudades, instituciones, partidos, medios, crimen, tratados, organizaciones e influencia. Consulte [ARCHITECTURE_V51.md](ARCHITECTURE_V51.md) para el contrato detallado.
 

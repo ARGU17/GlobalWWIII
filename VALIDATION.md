@@ -1,4 +1,8 @@
-# Validación técnica — Strategic Command v5.1.0
+# Validación técnica — Strategic Command v5.2.0
+
+## Validación v5.2
+
+Ejecutar `node tests/v52-validation.js`. Comprueba los catálogos exactos solicitados, 197 países, los ocho sistemas nuevos, formaciones y suministros, guerra multidominio, posguerra y resistencia, niebla de guerra, operaciones de inteligencia, conocimiento y difusión, clima, mapas y riesgos. Además ejecuta acciones reales, renderiza los tres paneles, simula 100 días, busca valores no finitos, verifica determinismo y migra una partida v5.1. Las pruebas v5.1 y v5.0 se mantienen como regresión.
 
 ## Validación v5.1
 

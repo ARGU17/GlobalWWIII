@@ -56,6 +56,9 @@ window.NEXUS_UI = (() => {
       if (event.target.id === "countrySelect") actions.selectCountry?.(event.target.value);
       if (event.target.matches("[data-region-select]")) actions.selectRegion?.(state.selectedCountryId||state.controlledCountryId, event.target.value);
       if (event.target.id === "stockSectorFilter") { stockSector=event.target.value; renderPanel(); }
+      if (event.target.id === "v52IntelTarget") { state.selectedCountryId=event.target.value; renderPanel(); }
+      if (event.target.id === "v52Metric") { controlled().v52.analysis.selectedMetric=event.target.value; renderPanel(); }
+      if (event.target.id === "v52Map") { runV51(E().setAnalysisMap?.(state,event.target.value)); }
       if (event.target.matches("[data-doctrine]")) actions.setDoctrine?.(event.target.value);
       if (event.target.matches("[data-setting]")) actions.updateSetting?.(event.target.dataset.setting, event.target.checked);
     });
@@ -136,6 +139,16 @@ window.NEXUS_UI = (() => {
       v51City: () => runV51(E().cityAction?.(state,d.cityId,d.kind)),
       v51Influence: () => { const target=document.getElementById("v51Target"),channel=document.getElementById("v51Influence");runV51(E().influenceAction?.(state,target?.value,channel?.value)); },
       v51Treaty: () => { const target=document.getElementById("v51Target"),type=document.getElementById("v51Treaty");runV51(E().treatyAction?.(state,target?.value,type?.value)); },
+      v52Military: () => runV51(E().militaryOperationAction?.(state,d.domain,d.kind,d.warId||null,d.formationId||null)),
+      v52Postwar: () => runV51(E().postwarAction?.(state,d.caseId,d.kind)),
+      v52Intel: () => { const target=document.getElementById("v52IntelTarget");runV51(E().intelligenceOperation?.(state,target?.value,d.kind,"humint")); },
+      v52Tech: () => { const mode=document.getElementById(`tech-mode-${d.techId}`),target=document.getElementById("v52IntelTarget");runV51(E().technologyAction?.(state,d.techId,mode?.value,target?.value||null)); },
+      v52Crisis: () => runV51(E().resolveCausalDecision?.(state,d.eventId,d.kind)),
+      v52Map: () => runV51(E().setAnalysisMap?.(state,d.kind)),
+      v52Compare: () => { const a=document.getElementById("v52CompareA"),b=document.getElementById("v52CompareB");E().compareCountries?.(state,[a?.value,b?.value]);renderAll(); },
+      v52Alert: () => { const m=document.getElementById("v52AlertMetric"),o=document.getElementById("v52AlertOperator"),t=document.getElementById("v52AlertThreshold"),h=document.getElementById("v52AlertHorizon");runV51(E().configureAlert?.(state,m?.value,o?.value,Number(t?.value),Number(h?.value))); },
+      v52Preview: () => { const t=document.getElementById("v52PreviewType"),i=document.getElementById("v52PreviewIntensity");runV51(E().previewDecision?.(state,t?.value,Number(i?.value))); },
+      v52Explain: () => runV51(E().explainMetric?.(state,d.metric||"indicador")),
       reconstructRegion: () => actions.reconstructRegion?.(d.regionId, d.scope || "all"),
       reconstructCountry: () => actions.reconstructCountry?.(d.countryId),
       payDebt: () => actions.payDownDebt?.(Number(d.share || 5)),
@@ -231,8 +244,9 @@ window.NEXUS_UI = (() => {
 
   function renderPanel() {
     const box=document.getElementById("mainPanel");if(!box)return;
-    const renderers={overview:renderOverview,systems:renderSystemsV5,markets51:()=>window.NEXUS_V51_UI.renderMarkets(state),society51:()=>window.NEXUS_V51_UI.renderSociety(state),economy:renderEconomy,regions:renderRegions,industry:renderIndustry,stock:renderStock,politics:renderPolitics,technology:renderTechnology,military:renderMilitary,diplomacy:renderDiplomacy,intelligence:renderIntelligence,objectives:renderObjectives,events:renderEvents,settings:renderSettings};
+    const renderers={overview:renderOverview,systems:renderSystemsV5,markets51:()=>window.NEXUS_V51_UI.renderMarkets(state),society51:()=>window.NEXUS_V51_UI.renderSociety(state),command52:()=>window.NEXUS_V52_UI.renderCommand(state),knowledge52:()=>window.NEXUS_V52_UI.renderKnowledge(state),analysis52:()=>window.NEXUS_V52_UI.renderAnalysis(state),economy:renderEconomy,regions:renderRegions,industry:renderIndustry,stock:renderStock,politics:renderPolitics,technology:renderTechnology,military:renderMilitary,diplomacy:renderDiplomacy,intelligence:renderIntelligence,objectives:renderObjectives,events:renderEvents,settings:renderSettings};
     box.innerHTML=(renderers[state.activePanel]||renderOverview)();
+    if(String(state.activePanel).endsWith("52"))box.querySelectorAll("strong,b,td").forEach(el=>{if(/[-+]?\d/.test(el.textContent||"")&&!el.closest("button,select")&&!el.querySelector("button,select,input")){el.dataset.action="v52Explain";el.dataset.metric=(el.closest("tr")?.querySelector("td,th")?.textContent||el.parentElement?.querySelector("span,b")?.textContent||el.textContent).trim().slice(0,80);el.title="Pulsa para saber por qué ha cambiado"}});
   }
 
   function renderOverview() {

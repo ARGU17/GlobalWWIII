@@ -1,5 +1,18 @@
 # Changelog
 
+## Strategic Command v5.2.0
+
+- Guerra basada en capacidad con 11 escalones, 17 propiedades de unidad y resolución terrestre, aérea y naval.
+- Logística militar diaria para combustible, munición, alimentos, repuestos, reemplazos y transporte, con degradación gradual.
+- Once modelos de posguerra, ocupación costosa, resistencia, reconstrucción e integración condicionada por el tamaño del país.
+- Niebla de guerra por dato con estimación, intervalo, confianza, antigüedad, fuente y desinformación; nueve fuentes y once operaciones.
+- Tecnología convertida en conocimiento dependiente de diez capacidades, ocho vías de difusión y veinte ramas nuevas.
+- Doce variables climáticas conectadas a producción, inflación, protesta, migración, logística, déficit y deuda.
+- Eventos emergentes explicados por sus condiciones, con respuestas jugables.
+- Tres centros visuales nuevos: Operaciones, Conocimiento y Análisis.
+- Histórico de métricas, comparador, Sankey, nueve mapas sistémicos, alertas, riesgos 30/90/365, simulador antes/después, informes y diario.
+- Migración automática desde v5.1 y conservación de todos los módulos previos.
+
 ## Strategic Command v5.1.0
 
 - Añadidos 21 mercados físicos diferenciados y contabilidad nacional completa.
