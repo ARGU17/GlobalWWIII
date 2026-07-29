@@ -249,8 +249,11 @@ window.NEXUS_UI = (() => {
 
   function decisionCenter(c){
     const pending=(state.decisions||[]).filter(d=>d.status==="pending"&&d.targetCountryId===c.id);
-    if(!pending.length)return `<section class="card action-center empty"><div class="card-title"><h3>📨 Centro de decisiones</h3><span>Sin asuntos pendientes</span></div><p class="muted">Las propuestas diplomáticas, crisis, anexiones y decisiones de gobierno aparecerán aquí.</p></section>`;
-    return `<section class="card action-center"><div class="card-title"><h3>📨 Centro de decisiones</h3><span>${pending.length} ${pending.length===1?"asunto pendiente":"asuntos pendientes"}</span></div><div class="action-message-grid">${pending.slice(0,8).map(d=>`<article class="action-message ${esc(d.priority||"normal")}"><header><span>${decisionIcon(d.category)}</span><div><b>${esc(d.title)}</b><small>${esc(d.date||state.date)} · ${esc(d.category||"Estado")}</small></div></header><p>${esc(d.text)}</p><div class="decision-options">${(d.options||[]).map(o=>`<button data-action="resolveDecision" data-decision-id="${d.id}" data-choice-id="${esc(o.id)}"><b>${esc(o.label)}</b><small>${esc(o.description||"")}</small></button>`).join("")}</div></article>`).join("")}</div></section>`;
+    const systemic=(state.actionInbox||[]).filter(d=>d.status==="pending"&&(d.countryId===c.id||!d.countryId)),total=pending.length+systemic.length;
+    if(!total)return `<section class="card action-center empty"><div class="card-title"><h3>📨 Centro de decisiones</h3><span>Sin asuntos pendientes</span></div><p class="muted">Las propuestas diplomáticas, crisis, anexiones y decisiones de gobierno aparecerán aquí.</p></section>`;
+    const legacyHTML=pending.slice(0,8).map(d=>`<article class="action-message ${esc(d.priority||"normal")}"><header><span>${decisionIcon(d.category)}</span><div><b>${esc(d.title)}</b><small>${esc(d.date||state.date)} · ${esc(d.category||"Estado")}</small></div></header><p>${esc(d.text)}</p><div class="decision-options">${(d.options||[]).map(o=>`<button data-action="resolveDecision" data-decision-id="${d.id}" data-choice-id="${esc(o.id)}"><b>${esc(o.label)}</b><small>${esc(o.description||"")}</small></button>`).join("")}</div></article>`).join("");
+    const systemicHTML=systemic.slice(0,Math.max(0,8-pending.length)).map(d=>`<article class="action-message high"><header><span>${eventIcon(d.type)}</span><div><b>${esc(d.title)}</b><small>${esc(state.date)} · sistema ${esc(d.type)}</small></div></header><p>${esc(d.text)}</p><div class="decision-options">${(d.options||[]).map((o,i)=>`<button data-action="resolveV5" data-decision-id="${d.id}" data-choice="${i}"><b>${esc(o)}</b><small>Efecto sistémico inmediato</small></button>`).join("")}</div></article>`).join("");
+    return `<section class="card action-center"><div class="card-title"><h3>📨 Centro de decisiones</h3><span>${total} ${total===1?"asunto pendiente":"asuntos pendientes"}</span></div><div class="action-message-grid">${systemicHTML}${legacyHTML}</div></section>`;
   }
   function decisionIcon(category){return({election:"🗳️",annexation:"🗺️",reconstruction:"🏗️",security:"⚔️",trade:"🚢",cabinet:"🏛️"})[category]||"📨"}
 
@@ -382,7 +385,7 @@ window.NEXUS_UI = (() => {
   }
 
   function renderEvents() {
-    const important=importantEvents(),pending=(state.decisions||[]).filter(d=>d.status==="pending"&&d.targetCountryId===state.controlledCountryId);
+    const important=importantEvents(),pending=[...(state.decisions||[]).filter(d=>d.status==="pending"&&d.targetCountryId===state.controlledCountryId),...(state.actionInbox||[]).filter(d=>d.status==="pending"&&(d.countryId===state.controlledCountryId||!d.countryId))];
     return `${heading("Cronología de acontecimientos","Solo crisis, política, batallas, anexiones y asuntos que requieren atención")}<div class="kpi-grid four">${kpi("Tensión",pct(state.world.tension),"mundial")}${kpi("Decisiones",fmt0(pending.length),"pendientes")}${kpi("Eventos relevantes",fmt0(important.length),"historial")}${kpi("Guerras",fmt0(state.wars.filter(w=>!w.ended).length),"activas")}</div>${pending.length?decisionCenter(controlled()):""}<div class="event-list">${important.slice(0,160).map(eventRow).join("")}</div>`;
   }
 
