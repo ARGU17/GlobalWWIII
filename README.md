@@ -1,6 +1,16 @@
-# NEXUS Global — Strategic Command v5.4.0
+# NEXUS Global — Strategic Command v5.4.1
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
+
+## Franja completa de mercados v5.4.1
+
+La barra superior muestra ahora, sin excepciones, los 21 mercados diferenciados: electricidad, petróleo, gas, carbón, uranio, acero, aluminio, cobre, litio, semiconductores, maquinaria, fertilizantes, cereales, carne, medicamentos, vehículos, bienes de consumo, vivienda, servicios digitales, transporte y defensa.
+
+- Cada tarjeta usa los datos económicos reales del país controlado, no un indicador independiente.
+- Se muestran producción, demanda, unidad y déficit o excedente con actualización diaria.
+- El detalle accesible añade inventario, importaciones, exportaciones y precio nacional.
+- La franja mantiene una sola línea con desplazamiento horizontal y adaptación a escritorio, tableta y móvil.
+- El catálogo visual vive en `data/v54/market-resources.json` y se valida al arrancar.
 
 ## Nueva arquitectura de Strategic Command v5.4.0
 

@@ -206,8 +206,8 @@ window.NEXUS_UI = (() => {
     set("currentTime",`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`);
   }
   function renderTopResources(){
-    const box=document.getElementById("topResourceStrip");if(!box)return;const c=controlled(),balances=c.resourceBalance||{};
-    box.innerHTML=(state.resourceDefinitions||E().resourceDefinitions||[]).map(def=>{const r=balances[def.id]||{production:0,consumption:0,balance:0,unit:def.unit};return `<div class="top-resource ${r.balance>=0?"surplus":"deficit"}" title="${esc(def.name)}: producción ${fmt1(r.production)} ${esc(r.unit)}, consumo ${fmt1(r.consumption)} ${esc(r.unit)}"><span>${def.icon}</span><div><b>${esc(def.name)}</b><small>${fmt1(r.production)} / ${fmt1(r.consumption)} ${esc(r.unit)}</small></div><strong>${r.balance>=0?"+":""}${fmt1(r.balance)}</strong></div>`}).join("");
+    const box=document.getElementById("topResourceStrip");if(!box)return;const c=controlled(),renderer=window.NEXUS_V54?.ui?.renderMarketStrip;
+    box.innerHTML=renderer?renderer(c):"";
   }
 
   function renderNavigation() {

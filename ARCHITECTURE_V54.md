@@ -1,4 +1,4 @@
-# Arquitectura técnica — Strategic Command v5.4.0
+# Arquitectura técnica — Strategic Command v5.4.1
 
 ## Resultado
 
@@ -20,6 +20,7 @@ index.html
 - `data/v54/ownership.json` asigna cada ruta nueva a un solo propietario. `StateStore.transact` impide escrituras declaradas desde otro sistema y conserva su resultado en la auditoría.
 - `data/v54/event-types.json` declara los payloads aceptados. Un evento ausente o con tipos incorrectos se rechaza antes de llegar a suscriptores.
 - `data/v54/systems.json` es el manifiesto externo de los 13 sistemas. El scheduler separa ejecución diaria, semanal, mensual, trimestral y anual.
+- `data/v54/market-resources.json` define los 21 mercados visibles, su orden, unidad, icono, grupo y acento. Los valores se leen del estado económico, de modo que la interfaz no mantiene balances paralelos.
 - `data/v54/state.schema.json` valida el estado al cargarlo y después de cada transacción.
 - `RngService` deriva secuencias por semilla, día, país y sistema, por lo que dos campañas equivalentes producen la misma salida.
 - `SaveManager` envuelve el estado con versión, schema y checksum. Las migraciones `52 → 53 → 54` son explícitas y se registran en el propio guardado.

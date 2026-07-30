@@ -1,0 +1,23 @@
+[
+  {"id":"electricity","name":"Electricidad","icon":"⚡","unit":"MWh","group":"energy","accent":"#f5c451"},
+  {"id":"oil","name":"Petróleo","icon":"🛢️","unit":"Mt","group":"energy","accent":"#9f744b"},
+  {"id":"gas","name":"Gas","icon":"🔥","unit":"bcm","group":"energy","accent":"#5fb5e8"},
+  {"id":"coal","name":"Carbón","icon":"⬛","unit":"Mt","group":"energy","accent":"#7e8790"},
+  {"id":"uranium","name":"Uranio","icon":"☢️","unit":"kt","group":"energy","accent":"#b9d84b"},
+  {"id":"steel","name":"Acero","icon":"🔩","unit":"Mt","group":"materials","accent":"#aebdca"},
+  {"id":"aluminum","name":"Aluminio","icon":"🥫","unit":"Mt","group":"materials","accent":"#d2dce4"},
+  {"id":"copper","name":"Cobre","icon":"🟠","unit":"Mt","group":"materials","accent":"#d98948"},
+  {"id":"lithium","name":"Litio","icon":"🔋","unit":"kt","group":"materials","accent":"#72d6a1"},
+  {"id":"semiconductors","name":"Semiconductores","icon":"💾","unit":"mil M€","group":"industry","accent":"#7ca8ff"},
+  {"id":"machinery","name":"Maquinaria","icon":"⚙️","unit":"mil M€","group":"industry","accent":"#9aaebf"},
+  {"id":"fertilizers","name":"Fertilizantes","icon":"🧪","unit":"Mt","group":"agriculture","accent":"#79c882"},
+  {"id":"grains","name":"Cereales","icon":"🌾","unit":"Mt","group":"agriculture","accent":"#d9b857"},
+  {"id":"meat","name":"Carne","icon":"🥩","unit":"Mt","group":"agriculture","accent":"#d97872"},
+  {"id":"medicines","name":"Medicamentos","icon":"💊","unit":"mil M€","group":"services","accent":"#e790a8"},
+  {"id":"vehicles","name":"Vehículos","icon":"🚗","unit":"mil M€","group":"industry","accent":"#e16f63"},
+  {"id":"consumerGoods","name":"Bienes de consumo","icon":"🛍️","unit":"mil M€","group":"consumption","accent":"#be8be5"},
+  {"id":"housing","name":"Vivienda","icon":"🏠","unit":"mil M€","group":"consumption","accent":"#e2a65f"},
+  {"id":"digitalServices","name":"Servicios digitales","icon":"💻","unit":"mil M€","group":"services","accent":"#55c4df"},
+  {"id":"transport","name":"Transporte","icon":"🚚","unit":"mil M€","group":"services","accent":"#75a8d8"},
+  {"id":"defense","name":"Defensa","icon":"🛡️","unit":"mil M€","group":"industry","accent":"#8fa0b2"}
+]

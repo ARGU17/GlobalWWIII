@@ -1,9 +1,10 @@
 "use strict";
 
 (() => {
-  const SAVE_KEY="nexus_strategic_v5_4_0_save";
+  const SAVE_KEY="nexus_strategic_v5_4_1_save";
+  const PREVIOUS_SAVE_KEY="nexus_strategic_v5_4_0_save";
   const LEGACY_CLAIM_KEY="nexus_strategic_v5_0_0_legacy_claimed";
-  const LEGACY_KEYS=["nexus_strategic_v5_2_0_save","nexus_strategic_v5_1_0_save","nexus_strategic_v5_0_0_save","nexus_alpha_v2_0_0_save","nexus_alpha_v1_9_0_save","nexus_alpha_v1_8_2_save","nexus_alpha_v1_8_1_save","nexus_alpha_v1_8_save","nexus_alpha_v1_7_save","nexus_alpha_v1_6_save","nexus_alpha_v1_5_save","nexus_alpha_v1_4_save","nexus_alpha_v1_3_save","nexus_alpha_v1_2_save","nexus_alpha_v1_1_save","nexus_alpha_v1_0_save"];
+  const LEGACY_KEYS=["nexus_strategic_v5_4_0_save","nexus_strategic_v5_2_0_save","nexus_strategic_v5_1_0_save","nexus_strategic_v5_0_0_save","nexus_alpha_v2_0_0_save","nexus_alpha_v1_9_0_save","nexus_alpha_v1_8_2_save","nexus_alpha_v1_8_1_save","nexus_alpha_v1_8_save","nexus_alpha_v1_7_save","nexus_alpha_v1_6_save","nexus_alpha_v1_5_save","nexus_alpha_v1_4_save","nexus_alpha_v1_3_save","nexus_alpha_v1_2_save","nexus_alpha_v1_1_save","nexus_alpha_v1_0_save"];
   const DAY_MS=10000;
   const SPEED_OPTIONS=[1,2,4,16,32];
   let state,timer=null,visualFrame=null,lastUIRender=0;
@@ -12,6 +13,7 @@
   const storageSet=(key,value)=>{try{localStorage.setItem(key,value);return true}catch(_){return false}};
   const storageRemove=key=>{try{localStorage.removeItem(key);return true}catch(_){return false}};
   const currentSaveKey=()=>window.NEXUS_AUTH?.storageKey?.(SAVE_KEY)||SAVE_KEY;
+  const previousSaveKey=()=>window.NEXUS_AUTH?.storageKey?.(PREVIOUS_SAVE_KEY)||PREVIOUS_SAVE_KEY;
 
   function boot(){
     try{
@@ -125,11 +127,11 @@
   function queueVisualRefresh(force=false){const fast=state.speed>=16&&state.running;if(force||!fast||state.mapLayer==="military")NEXUS_MAP_ENGINE.render();const now=performance.now(),minimum=fast?250:state.speed>=4&&state.running?180:0;if(!force&&now-lastUIRender<minimum)return;if(visualFrame)return;visualFrame=requestAnimationFrame(()=>{visualFrame=null;lastUIRender=performance.now();if(fast&&!force)NEXUS_UI.renderSimulationFrame?.();else NEXUS_UI.renderAll()})}
   function refresh(){queueVisualRefresh(true)}
 
-  function saveState(show=true){const payload=window.NEXUS_V54?.pack?.(state)||state,ok=storageSet(currentSaveKey(),JSON.stringify(payload));if(show)NEXUS_UI.toast(ok?"Partida v5.4 versionada y guardada.":"El navegador bloqueó el guardado local.",ok?"success":"warning");return ok}
-  function loadState(){const key=currentSaveKey();let raw=storageGet(key),user=window.NEXUS_AUTH?.currentUser?.();if(!raw&&user&&!user.guest&&!storageGet(LEGACY_CLAIM_KEY)){raw=LEGACY_KEYS.map(storageGet).find(Boolean);if(raw&&storageSet(key,raw))storageSet(LEGACY_CLAIM_KEY,user.id)}if(!raw)return null;try{return JSON.parse(raw)}catch(_){return null}}
+  function saveState(show=true){const payload=window.NEXUS_V54?.pack?.(state)||state,ok=storageSet(currentSaveKey(),JSON.stringify(payload));if(show)NEXUS_UI.toast(ok?"Partida v5.4.1 versionada y guardada.":"El navegador bloqueó el guardado local.",ok?"success":"warning");return ok}
+  function loadState(){const key=currentSaveKey();let raw=storageGet(key),user=window.NEXUS_AUTH?.currentUser?.();if(!raw){raw=storageGet(previousSaveKey());if(raw)storageSet(key,raw)}if(!raw&&user&&!user.guest&&!storageGet(LEGACY_CLAIM_KEY)){raw=LEGACY_KEYS.map(storageGet).find(Boolean);if(raw&&storageSet(key,raw))storageSet(LEGACY_CLAIM_KEY,user.id)}if(!raw)return null;try{return JSON.parse(raw)}catch(_){return null}}
   function manualLoad(){const loaded=normalizeLoadedState(loadState());if(!loaded){NEXUS_UI.toast("No hay guardado compatible.","warning");return}state=loaded;rebind();NEXUS_UI.toast("Partida cargada.","success")}
   function normalizeLoadedState(candidate){if(!candidate||typeof candidate!=="object")return null;try{const payload=candidate.format==="nexus-global-save"?window.NEXUS_V54.saveManager.unpack(candidate):candidate;if(!Array.isArray(payload.countries))return null;return NEXUS_ECONOMY.hydrateState(payload)}catch(error){console.warn("Guardado incompatible",error);return null}}
-  function exportSave(){const payload=window.NEXUS_V54?.pack?.(state)||state,blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`nexus-v5.4.0-${state.date}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);NEXUS_UI.toast("Guardado v5.4 exportado con integridad verificable.","success")}
+  function exportSave(){const payload=window.NEXUS_V54?.pack?.(state)||state,blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`nexus-v5.4.1-${state.date}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);NEXUS_UI.toast("Guardado v5.4.1 exportado con integridad verificable.","success")}
   function importSave(raw){try{const normalized=normalizeLoadedState(JSON.parse(raw));if(!normalized)throw new Error("Formato incompatible");state=normalized;rebind();NEXUS_UI.closeModal();NEXUS_UI.toast("Partida importada.","success")}catch(error){NEXUS_UI.toast(`Importación fallida: ${error.message}`,"error")}}
   function reset(){if(!confirm("¿Reiniciar la campaña de esta cuenta?"))return;storageRemove(currentSaveKey());state=NEXUS_ECONOMY.createInitialState();rebind();NEXUS_UI.toast("Campaña de la cuenta reiniciada.","success")}
   function updateSetting(key,value){state.settings[key]=value;document.body.classList.toggle("reduced-motion",state.settings.reducedMotion);document.body.classList.toggle("dense-ui",state.settings.denseUI);NEXUS_UI.renderAll();NEXUS_MAP_ENGINE.render()}

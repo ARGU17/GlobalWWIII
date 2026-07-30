@@ -1,5 +1,15 @@
 # Changelog
 
+## Strategic Command v5.4.1
+
+- Sustituida la antigua franja de ocho recursos agregados por los 21 mercados económicos diferenciados.
+- Añadidas tarjetas para electricidad, petróleo, gas, carbón, uranio, acero, aluminio, cobre, litio, semiconductores, maquinaria, fertilizantes, cereales, carne, medicamentos, vehículos, bienes de consumo, vivienda, servicios digitales, transporte y defensa.
+- Cada tarjeta muestra producción, demanda y balance dinámico; su detalle incorpora inventario, comercio y precio nacional.
+- Añadido catálogo externo con icono, unidad, grupo y color para cada mercado.
+- Convertida la franja en una única línea horizontal desplazable y adaptable.
+- Añadida migración directa de guardados v5.4.0 por cuenta y nueva clave v5.4.1.
+- Añadida prueba específica que exige 21 de 21 mercados visibles y dinámicos.
+
 ## Strategic Command v5.4.0
 
 - Eliminada la carga encadenada de ocho capas `alpha-vXX.js`; 29 fuentes v5.2 quedan congeladas en un bundle de compatibilidad reproducible.

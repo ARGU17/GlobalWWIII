@@ -1,4 +1,8 @@
-# Validación técnica — Strategic Command v5.4.0
+# Validación técnica — Strategic Command v5.4.1
+
+## Validación v5.4.1
+
+Ejecutar `node tests/v541-market-strip-validation.mjs`. Comprueba el catálogo exacto y ordenado de 21 mercados; sus metadatos visuales; la presencia de las diez magnitudes económicas exigidas; 21 tarjetas renderizadas; producción, demanda, balance, inventario, comercio y precio; valores finitos y actualización real después de 35 días. También verifica que el runtime y el guardado declaren `5.4.1`.
 
 ## Validación v5.4
 
