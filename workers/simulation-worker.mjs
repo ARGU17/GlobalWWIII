@@ -1,0 +1,2 @@
+const tasks={aggregateRisks:payload=>{const values=payload.values||[];return{average:values.reduce((a,b)=>a+b,0)/Math.max(1,values.length),maximum:Math.max(0,...values)}},compactHistory:payload=>(payload||[]).filter((_,i,a)=>i%Math.max(1,Math.ceil(a.length/500))===0)};
+self.onmessage=({data})=>{try{if(!tasks[data.task])throw new Error(`Tarea desconocida: ${data.task}`);self.postMessage({id:data.id,result:tasks[data.task](data.payload)})}catch(error){self.postMessage({id:data.id,error:error.message})}};

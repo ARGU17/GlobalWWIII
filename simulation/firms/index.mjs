@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"firms",frequency:"monthly",order:30,reads:["countries.*.v5.economy.firms"],calculate:s=>{const firms=h.sovereign(s).flatMap(c=>c.v5?.economy?.firms||[]);return{firms:firms.length,plants:firms.reduce((a,f)=>a+(f.plants?.length||0),0),employment:h.round(firms.reduce((a,f)=>a+(f.employment||0),0)),distressed:firms.filter(f=>(f.health||100)<35).length}}});

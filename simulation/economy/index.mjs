@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"economy",frequency:"daily",order:10,reads:["countries.*.economy"],calculate:s=>{const c=h.sovereign(s);return{globalGDP:h.round(c.reduce((a,x)=>a+x.economy.gdp,0)),growth:h.round(h.avg(c.map(x=>x.economy.growth))),inflation:h.round(h.avg(c.map(x=>x.economy.inflation))),tradeBalance:h.round(c.reduce((a,x)=>a+x.economy.tradeBalance,0))}}});

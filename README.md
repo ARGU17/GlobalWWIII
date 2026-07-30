@@ -1,6 +1,19 @@
-# NEXUS Global — Strategic Command v5.2.0
+# NEXUS Global — Strategic Command v5.4.0
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
+
+## Nueva arquitectura de Strategic Command v5.4.0
+
+La v5.4 mantiene las funciones jugables de v5.2, pero cambia su base técnica. `index.html` ya no encadena capas `alpha-vXX.js`: el runtime anterior queda congelado en un único bundle de compatibilidad y todo desarrollo nuevo se distribuye entre `core/`, `simulation/`, `world/`, `ai/` y `ui/`. Consulte [ARCHITECTURE_V54.md](ARCHITECTURE_V54.md).
+
+- Store central con un propietario declarado por cada ruta nueva y auditoría de transacciones.
+- Eventos tipados, schema externo y datos de configuración fuera del código.
+- Trece sistemas desacoplados con fases diaria, semanal, mensual, trimestral y anual.
+- RNG reproducible y pruebas deterministas sobre 197 países.
+- Guardados v5.4 con checksum, schema y migraciones explícitas desde v5.2.
+- Worker para agregaciones pesadas y fallback determinista.
+- Ejecución headless sin DOM mediante `headless/runner.mjs`.
+- Panel **Arquitectura** para inspeccionar sistemas, propietarios, eventos y auditoría desde la partida.
 
 ## Evolución operacional de Strategic Command v5.2.0
 

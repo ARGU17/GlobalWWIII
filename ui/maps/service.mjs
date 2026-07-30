@@ -1,0 +1,1 @@
+export const mapLayer=(state,id)=>{if(id.startsWith("v52."))return state.v52?.analysisMaps?.[id.slice(4)]||null;return{id,nodes:(state.countries||[]).filter(x=>x.sovereign!==false).map(x=>({id:x.id,label:x.name,value:x.systems?.[id]??x.economy?.gdp??0})),edges:[]}};

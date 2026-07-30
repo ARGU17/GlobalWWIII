@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"diplomacy",frequency:"weekly",order:80,reads:["countries.*.relations","treatyRegistry"],calculate:s=>({activeTreaties:(s.treatyRegistry||[]).filter(x=>x.status==="active").length,organizations:s.v51?.organizations?.length||s.organizations?.length||0,tension:h.round(s.world?.tension||0),sanctions:(s.tradeContracts||[]).filter(x=>x.sanctioned).length})});

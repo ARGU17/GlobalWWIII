@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"logistics",frequency:"daily",order:60,reads:["v51.logistics","countries.*.systems.logistics"],calculate:s=>{const l=s.v51?.logistics||{};return{nodes:l.nodes?.length||0,routes:l.routes?.length||0,congestion:h.round(h.avg((l.routes||[]).map(x=>x.congestion||0))),reliability:h.round(h.avg((l.routes||[]).map(x=>x.reliability||100)))}}});

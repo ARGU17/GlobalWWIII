@@ -1,0 +1,3 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export const quarterlySystem=domainSystem({id:"quarterly",frequency:"quarterly",order:200,reads:["v54.metrics"],calculate:s=>({quarter:Math.floor((s.dayIndex||0)/90)+1,gdp:s.v54.metrics.economy?.globalGDP||0,averageRisk:h.round(h.avg([s.v54.metrics.finance?.stress||0,s.v54.metrics.energy?.blackoutRisk||0,s.v54.metrics.military?.activeWars*10||0]))})});
+export const annualSystem=domainSystem({id:"annual",frequency:"annual",order:210,reads:["v54.metrics"],calculate:s=>({year:new Date(`${s.date}T00:00:00Z`).getUTCFullYear(),gdp:s.v54.metrics.economy?.globalGDP||0,population:s.v54.metrics.population?.population||0,activeWars:s.v54.metrics.military?.activeWars||0,systemAudit:s.v54.audit.length})});

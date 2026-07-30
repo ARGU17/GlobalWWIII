@@ -1,0 +1,1 @@
+export const proposeDiplomacy=(state,country)=>{const relations=Object.entries(country.relations||{}).filter(([id])=>state.countries.some(c=>c.id===id&&c.sovereign!==false));const weakest=relations.sort((a,b)=>a[1]-b[1])[0];return weakest?{type:weakest[1]<15?"deescalate":"trade",targetId:weakest[0],urgency:Math.max(0,50-weakest[1])}:null};

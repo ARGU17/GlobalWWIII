@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"energy",frequency:"daily",order:50,reads:["countries.*.v5.infrastructure.energy"],calculate:s=>{const c=h.sovereign(s),e=c.map(x=>x.v5?.infrastructure?.energy||{});return{generation:h.round(e.reduce((a,x)=>a+(x.availableGeneration||x.capacity||0),0)),demand:h.round(e.reduce((a,x)=>a+(x.demand||0),0)),blackoutRisk:h.round(h.avg(e.map(x=>x.blackoutRisk||0))),gridReliability:h.round(h.avg(e.map(x=>x.gridReliability||x.stability||0)))}}});

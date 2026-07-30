@@ -1,0 +1,3 @@
+const round=(v,d=2)=>Number((Number(v)||0).toFixed(d));
+export function domainSystem({id,frequency="daily",order=100,reads=[],calculate}){return{id:`simulation.${id}`,owner:`simulation.${id}`,frequency,order,reads,writes:[`v54.metrics.${id}`,`v54.domains.${id}`],run({state,eventBus}){const metric=calculate(state);state.v54.metrics[id]={...metric,day:state.dayIndex,date:state.date};state.v54.domains[id]={lastRunDay:state.dayIndex,frequency,status:"ok"};eventBus.emit("simulation.domain.completed",{domain:id,day:state.dayIndex,frequency})}}}
+export const helpers={round,avg:a=>a.length?a.reduce((s,v)=>s+(Number(v)||0),0)/a.length:0,sovereign:s=>(s.countries||[]).filter(c=>c.sovereign!==false)};

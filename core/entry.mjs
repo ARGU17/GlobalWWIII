@@ -1,0 +1,65 @@
+import{SimulationClock}from"./clock.mjs";
+import{TypedEventBus}from"./event-bus.mjs";
+import{RngService}from"./rng.mjs";
+import{SaveManager}from"./save-manager.mjs";
+import{SchemaValidator}from"./schema-validator.mjs";
+import{StateStore}from"./state-store.mjs";
+import{WorkerClient}from"./worker-client.mjs";
+import{SimulationScheduler}from"../simulation/scheduler.mjs";
+import economy from"../simulation/economy/index.mjs";
+import population from"../simulation/population/index.mjs";
+import firms from"../simulation/firms/index.mjs";
+import finance from"../simulation/finance/index.mjs";
+import energy from"../simulation/energy/index.mjs";
+import logistics from"../simulation/logistics/index.mjs";
+import politics from"../simulation/politics/index.mjs";
+import diplomacy from"../simulation/diplomacy/index.mjs";
+import military from"../simulation/military/index.mjs";
+import intelligence from"../simulation/intelligence/index.mjs";
+import climate from"../simulation/climate/index.mjs";
+import{quarterlySystem,annualSystem}from"../simulation/reporting/index.mjs";
+import{StrategicPlanner}from"../ai/planner/index.mjs";
+import{proposeDiplomacy}from"../ai/diplomacy-ai/index.mjs";
+import{proposeEconomy}from"../ai/economy-ai/index.mjs";
+import{proposeMilitary}from"../ai/military-ai/index.mjs";
+import{countriesRepository}from"../world/countries/index.mjs";
+import{regionsRepository}from"../world/regions/index.mjs";
+import{citiesRepository}from"../world/cities/index.mjs";
+import{infrastructureRepository}from"../world/infrastructure/index.mjs";
+import{resourceCatalog,countryResources}from"../world/resources/index.mjs";
+
+export const VERSION="5.4.0",SCHEMA=54;
+const systems=[economy,population,firms,finance,energy,logistics,politics,diplomacy,military,intelligence,climate,quarterlySystem,annualSystem];
+
+export function createArchitecture({engine,config,workerUrl=null}){
+  if(!engine)throw new Error("v5.4 requiere un motor de compatibilidad");
+  const eventBus=new TypedEventBus(config.events),validator=new SchemaValidator(config.schema),store=new StateStore({owners:config.owners,validator}),rng=new RngService("nexus-global-v54"),clock=new SimulationClock(),saveManager=new SaveManager({version:VERSION,schema:SCHEMA}),worker=new WorkerClient(workerUrl),scheduler=new SimulationScheduler({store,eventBus,rng}),planner=new StrategicPlanner({eventBus});
+  for(const system of systems)scheduler.register(system);
+  for(const system of scheduler.manifest()){const external=config.manifest?.find(item=>`simulation.${item.id}`===system.id);if(!external||external.owner!==system.owner||external.frequency!==system.frequency)throw new Error(`Manifiesto v5.4 divergente: ${system.id}`)}
+  saveManager.registerMigration(52,53,state=>{state.v54={schema:52,migrations:[],metrics:{},domains:{},audit:[],typedEvents:[],worker:{enabled:Boolean(worker.worker),lastJobDay:null},compatibility:{sourceVersion:state.version||"unknown",frozenBundle:true}}});
+  saveManager.registerMigration(53,54,state=>{state.v54.schema=54;state.v54.owners={...config.owners};state.v54.systemManifest=scheduler.manifest();state.v54.architecture={core:true,headless:true,typedEvents:true,workers:true,externalData:true,explicitMigrations:true}});
+  const legacy={create:engine.createInitialState,hydrate:engine.hydrateState,tick:engine.tickDay};
+  function migrate(state){const from=Number(state.v54?.schema)||52;saveManager.migrate(state);state.version=VERSION;state.v54.version=VERSION;if(from<SCHEMA)eventBus.emit("state.migrated",{from,to:SCHEMA,day:Number(state.dayIndex)||0});validator.assert(state);return state}
+  function attach(state){migrate(state);store.replace(state,{owner:"core.state-store"});return state}
+  function createInitialState(){const state=attach(legacy.create());engine.pushEvent?.(state,"system","Strategic Command v5.4 · Arquitectura modular","Núcleo con store único, eventos tipados, dominios desacoplados, guardados versionados y ejecución headless activado.");return state}
+  function hydrateState(state){return attach(legacy.hydrate(saveManager.unpack(state)))}
+  function tickDay(state){if(store.state!==state)attach(state);eventBus.emit("simulation.day.before",{day:Number(state.dayIndex)||0,date:String(state.date)});const summary=store.transact("compat.v52",["legacy"],()=>legacy.tick(state),{type:"compat.tick"});const executed=scheduler.runDue(state);store.transact("core.migration",["version","v54.version"],()=>{state.version=VERSION;state.v54.version=VERSION},{type:"core.version"});store.transact("core.clock",["v54.lastRun"],()=>{state.v54.lastRun={day:state.dayIndex,date:state.date,systems:executed}},{type:"core.clock"});eventBus.emit("simulation.day.completed",{day:Number(state.dayIndex)||0,date:String(state.date),systems:executed});store.transact("core.event-bus",["v54.typedEvents"],()=>{state.v54.typedEvents=eventBus.history.slice(-500)},{type:"core.events.snapshot"});store.transact("core.audit",["v54.audit"],()=>{state.v54.audit=store.audit.slice(-1000)},{type:"core.audit.snapshot"});if(state.dayIndex%30===0){const requestedDay=state.dayIndex,values=(state.countries||[]).map(c=>c.v5?.economy?.banking?.stress||0);worker.run("aggregateRisks",{values}).then(result=>{if(store.state!==state)return;store.transact("core.worker",["v54.worker"],()=>{state.v54.worker.lastJobDay=requestedDay;state.v54.worker.lastRiskAggregation=result},{type:"worker.aggregate-risks"})}).catch(error=>{if(store.state!==state)return;store.transact("core.worker",["v54.worker"],()=>{state.v54.worker.lastError=error.message},{type:"worker.aggregate-risks.failed"})})}return{...(summary||{}),v54:{systems:executed,metrics:state.v54.metrics}}}
+  function pack(state){const save=saveManager.pack(state);eventBus.emit("save.created",{version:VERSION,day:Number(state.dayIndex)||0});return save}
+  function runHeadless(state,days=1){const active=state?hydrateState(state):createInitialState();for(let i=0;i<days;i++)tickDay(active);return active}
+  function planCountry(state,countryId){const country=state.countries.find(x=>x.id===countryId);if(!country)return null;return{strategy:planner.plan(state,country),diplomacy:proposeDiplomacy(state,country),economy:proposeEconomy(country),military:proposeMilitary(state,country)}}
+  const world={countries:countriesRepository,regions:regionsRepository,cities:citiesRepository,infrastructure:infrastructureRepository,resourceCatalog,countryResources};
+  return{VERSION,SCHEMA,eventBus,store,rng,clock,saveManager,worker,scheduler,world,ai:{planner,planCountry},legacy,migrate,attach,createInitialState,hydrateState,tickDay,pack,runHeadless};
+}
+
+async function loadConfig(base){const read=async name=>{const response=await fetch(new URL(`data/v54/${name}`,base));if(!response.ok)throw new Error(`No se pudo cargar ${name}`);return response.json()};const[owners,events,schema,manifest]=await Promise.all([read("ownership.json"),read("event-types.json"),read("state.schema.json"),read("systems.json")]);return{owners,events,schema,manifest}}
+
+if(typeof window!=="undefined"&&typeof document!=="undefined"){
+  try{
+    const base=new URL("../",import.meta.url),config=await loadConfig(base),architecture=createArchitecture({engine:window.NEXUS_ECONOMY,config,workerUrl:new URL("workers/simulation-worker.mjs",base)});
+    Object.assign(window.NEXUS_ECONOMY,{createInitialState:architecture.createInitialState,hydrateState:architecture.hydrateState,tickDay:architecture.tickDay,version54:true});
+    window.NEXUS_V54=architecture;
+    const{bootLegacyUi}=await import("../ui/bootstrap.mjs");await bootLegacyUi();
+  }catch(error){
+    console.error("NEXUS v5.4 boot error",error);document.getElementById("bootLoader")?.remove();document.getElementById("startOverlay")?.setAttribute("hidden","");const panel=document.getElementById("bootError"),text=document.getElementById("bootErrorText");if(panel)panel.hidden=false;if(text)text.textContent=error?.stack||error?.message||String(error);
+  }
+}

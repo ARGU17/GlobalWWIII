@@ -1,5 +1,17 @@
 # Changelog
 
+## Strategic Command v5.4.0
+
+- Eliminada la carga encadenada de ocho capas `alpha-vXX.js`; 29 fuentes v5.2 quedan congeladas en un bundle de compatibilidad reproducible.
+- Añadidos módulos independientes para núcleo, simulación, mundo, IA, interfaz y Workers.
+- Añadido store central con propiedad exclusiva por ruta y registro de auditoría.
+- Añadidos eventos tipados, validación de esquema y manifiestos externos JSON.
+- Separada la ejecución diaria, semanal, mensual, trimestral y anual en 13 sistemas.
+- Añadidos RNG reproducible, guardados con checksum y migraciones explícitas 52 → 53 → 54.
+- Añadidos Worker de cálculo, fallback determinista y runner headless sin interfaz.
+- Añadido panel visual de Arquitectura con sistemas, frecuencias, propietarios, eventos y auditoría.
+- Conservadas las funcionalidades y datos de Strategic Command v5.2.
+
 ## Strategic Command v5.2.0
 
 - Guerra basada en capacidad con 11 escalones, 17 propiedades de unidad y resolución terrestre, aérea y naval.

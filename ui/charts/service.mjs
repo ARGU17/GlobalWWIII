@@ -1,0 +1,2 @@
+export const chartSeries=(state,path,limit=180)=>{const parts=path.split("."),series=parts.reduce((v,key)=>v?.[key],state);return Array.isArray(series)?series.slice(-limit):[]};
+export const normalizeSeries=series=>{const values=series.map(x=>Number(x.value??x)||0),min=Math.min(0,...values),max=Math.max(1,...values);return series.map((x,i)=>({x:i/Math.max(1,series.length-1),y:(Number(x.value??x)-min)/(max-min)}))};

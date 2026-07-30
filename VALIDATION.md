@@ -1,4 +1,8 @@
-# Validación técnica — Strategic Command v5.2.0
+# Validación técnica — Strategic Command v5.4.0
+
+## Validación v5.4
+
+Ejecutar `node tests/v54-architecture-validation.mjs`. Verifica que `index.html` no cargue capas alpha, el bundle de compatibilidad y el entrypoint modular; 197 países; 13 sistemas; propiedad exclusiva de estado; eventos tipados; cálculo diario, semanal, mensual, trimestral y anual; migraciones explícitas; checksum de guardados; Worker y fallback; ejecución sin interfaz; conservación de selección y determinismo. El runner `node headless/runner.mjs 45` permite probar la campaña sin DOM.
 
 ## Validación v5.2
 

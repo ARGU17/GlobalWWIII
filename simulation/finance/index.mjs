@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"finance",frequency:"daily",order:40,reads:["countries.*.v5.economy.banks"],calculate:s=>{const c=h.sovereign(s),banks=c.flatMap(x=>x.v5?.economy?.banks||[]);return{banks:banks.length,stress:h.round(h.avg(c.map(x=>x.v5?.economy?.banking?.stress||0))),nonPerformingLoans:h.round(h.avg(banks.map(x=>x.nonPerformingLoans))),sovereignRisk:h.round(h.avg(c.map(x=>x.v5?.economy?.sovereign?.riskPremium||0)))}}});

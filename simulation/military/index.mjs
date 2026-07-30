@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"military",frequency:"daily",order:90,reads:["wars","countries.*.v52.military"],calculate:s=>{const c=h.sovereign(s),formations=c.flatMap(x=>x.v52?.military?.formations||[]);return{activeWars:(s.wars||[]).filter(x=>!x.ended).length,formations:formations.length,readiness:h.round(h.avg(formations.map(x=>x.properties.readiness))),supply:h.round(h.avg(formations.map(x=>x.properties.logistics))),fatigue:h.round(h.avg(formations.map(x=>x.properties.fatigue)))}}});

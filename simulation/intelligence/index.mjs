@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"intelligence",frequency:"weekly",order:100,reads:["countries.*.v52.intelligence"],calculate:s=>{const c=h.sovereign(s),intel=c.map(x=>x.v52?.intelligence||{}),ops=intel.flatMap(x=>x.operations||[]);return{dossiers:intel.reduce((a,x)=>a+Object.keys(x.dossiers||{}).length,0),activeOperations:ops.filter(x=>x.status==="active").length,completedOperations:ops.filter(x=>x.status==="completed").length,counterintelligence:h.round(h.avg(intel.map(x=>x.counterintelligence||0)))}}});

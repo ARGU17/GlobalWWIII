@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"politics",frequency:"weekly",order:70,reads:["countries.*.politics","countries.*.v51.government"],calculate:s=>{const c=h.sovereign(s);return{approval:h.round(h.avg(c.map(x=>x.systems.approval))),legitimacy:h.round(h.avg(c.map(x=>x.government.legitimacy))),minorityGovernments:c.filter(x=>x.v51?.government?.minorityGovernment).length,crises:c.filter(x=>x.v51?.government?.crisis?.type).length}}});

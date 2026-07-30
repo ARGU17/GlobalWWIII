@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"population",frequency:"monthly",order:20,reads:["countries.*.population","countries.*.v51.demography"],calculate:s=>{const c=h.sovereign(s);return{population:h.round(c.reduce((a,x)=>a+x.economy.population,0),3),workingAge:h.round(c.reduce((a,x)=>a+(x.v51?.demography?.ageCohorts?.["25–39"]||0)+(x.v51?.demography?.ageCohorts?.["40–54"]||0),0),3),refugees:h.round(c.reduce((a,x)=>a+(x.v51?.demography?.migration?.flows?.refugees||0),0),3)}}});

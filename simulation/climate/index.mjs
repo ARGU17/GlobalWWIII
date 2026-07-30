@@ -1,0 +1,2 @@
+import{domainSystem,helpers as h}from"../shared/domain-system.mjs";
+export default domainSystem({id:"climate",frequency:"monthly",order:110,reads:["countries.*.v52.climate"],calculate:s=>{const c=h.sovereign(s),m=c.map(x=>x.v52?.climate?.metrics||{});return{temperature:h.round(h.avg(m.map(x=>x.temperature))),drought:h.round(h.avg(m.map(x=>x.drought))),waterAvailability:h.round(h.avg(m.map(x=>x.waterAvailability))),airQuality:h.round(h.avg(m.map(x=>x.airQuality))),disasters:c.reduce((a,x)=>a+(x.v52?.climate?.disasters?.length||0),0)}}});
