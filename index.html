@@ -4,14 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#06111c">
-  <title>NEXUS Global · Strategic Command v5.4.1</title>
+  <title>NEXUS Global · Strategic Command v6.0.0</title>
   <meta name="description" content="Simulador geopolítico, económico y militar con mapa mundial real, 197 países y simulación diaria indefinida, sala de guerra y control corporativo.">
-  <link rel="stylesheet" href="css/styles.css?v=5.4.1-r1">
+  <link rel="stylesheet" href="assets/vendor/maplibre-gl/5.24.0/maplibre-gl.css?v=5.24.0">
+  <link rel="stylesheet" href="css/styles.css?v=6.0.0-r4">
 </head>
 <body>
   <div id="authOverlay" class="auth-overlay">
     <section class="auth-card" aria-labelledby="authTitle">
-      <div class="auth-brand"><span>N</span><div><strong>NEXUS GLOBAL</strong><small>STRATEGIC COMMAND · v5.4.1</small></div></div>
+      <div class="auth-brand"><span>N</span><div><strong>NEXUS GLOBAL</strong><small>STRATEGIC COMMAND · v6.0.0</small></div></div>
       <div class="auth-copy"><span class="eyebrow">IDENTIDAD ESTRATÉGICA</span><h1 id="authTitle">Accede a tu centro de mando</h1><p>Las cuentas y sus partidas se guardan de forma separada en este navegador.</p></div>
       <div class="auth-tabs" role="tablist"><button id="authLoginTab" class="active" type="button">Iniciar sesión</button><button id="authRegisterTab" type="button">Crear cuenta</button></div>
       <form id="loginForm" class="auth-form" autocomplete="on">
@@ -57,12 +58,12 @@
 
   <div id="bootError" class="boot-error" hidden>
     <h1>Error de arranque</h1><p id="bootErrorText"></p>
-    <button onclick="localStorage.clear();location.reload()">Borrar guardado y reintentar</button>
+    <button onclick="indexedDB.deleteDatabase('nexus-global-v6');localStorage.clear();location.reload()">Borrar guardados locales y reintentar</button>
   </div>
 
   <div id="startOverlay" class="start-overlay">
     <div class="start-card">
-      <div class="start-brand"><span>N</span><div><strong>NEXUS GLOBAL</strong><small>STRATEGIC COMMAND v5.4.1 · 21 MERCADOS DINÁMICOS</small></div></div>
+      <div class="start-brand"><span>N</span><div><strong>NEXUS GLOBAL</strong><small>STRATEGIC COMMAND v6.0.0 · MAPA 3D · 21 MERCADOS</small></div></div>
       <div class="start-copy">
         <span class="eyebrow">Campaña global · 1 de enero de 2028</span>
         <h1>Controla cualquier Estado del mundo</h1>
@@ -84,13 +85,13 @@
         <button id="continueBtn" class="secondary-btn large">Continuar</button>
         <button id="observerBtn" class="ghost-btn large">Modo observador</button>
       </div>
-      <p class="start-note">GitHub Pages · Sin backend · Guardado local · Los mosaicos OSM requieren conexión a Internet</p>
+      <p class="start-note">GitHub Pages · Sin backend · Guardado por cuenta en IndexedDB · Geometrías y relieve base disponibles sin conexión</p>
     </div>
   </div>
 
   <div class="game-shell">
     <header class="topbar">
-      <div class="brand-block"><div class="brand-mark">N</div><div><strong>NEXUS GLOBAL</strong><small>STRATEGIC COMMAND v5.4.1</small></div></div>
+      <div class="brand-block"><div class="brand-mark">N</div><div><strong>NEXUS GLOBAL</strong><small>STRATEGIC COMMAND v6.0.0</small></div></div>
       <div class="top-kpis">
         <div><i>🪙</i><span>Tesorería</span><b id="topTreasury">—</b></div>
         <div><i>💶</i><span>PIB</span><b id="topGDP">—</b></div>
@@ -148,12 +149,39 @@
               <button data-map-layer="political" class="active">Político</button><button data-map-layer="economy">PIB</button><button data-map-layer="military">Militar</button><button data-map-layer="industry">Industria</button><button data-map-layer="technology">Tecnología</button><button data-map-layer="stability">Estabilidad</button>
             </div>
           </header>
+          <div id="mapModeToolbar" class="map-mode-toolbar" aria-label="Configuración cartográfica">
+            <div class="map-mode-switch" role="group" aria-label="Modo visual del mapa">
+              <button id="mapModePolitical" data-map-mode="political" class="active" aria-pressed="true">POLÍTICO</button>
+              <button id="mapModeHybrid" data-map-mode="hybrid" aria-pressed="false">HÍBRIDO</button>
+              <button id="mapModeTerrain" data-map-mode="terrain" aria-pressed="false">TERRENO 3D</button>
+            </div>
+            <label class="map-blend-control" for="mapModeBlend"><span>Mezcla visual</span><input id="mapModeBlend" type="range" min="0" max="100" step="1" value="0"><output id="mapBlendValue" for="mapModeBlend">0%</output></label>
+            <button id="mapLayersToggle" aria-controls="mapLayerPanel" aria-expanded="false">CAPAS 00–57</button>
+            <label class="map-quality-control" for="mapQualitySelect"><span>Calidad</span><select id="mapQualitySelect"><option value="auto">Auto</option><option value="ultra">Ultra</option><option value="high">Alta</option><option value="medium">Media</option><option value="low">Baja</option></select></label>
+            <button id="mapFpsToggle" aria-pressed="false">FPS</button>
+          </div>
           <div class="map-viewport">
-            <canvas id="strategicMap" role="img" aria-label="Mapa mundial interactivo"></canvas>
-            <div class="map-controls"><button id="mapZoomIn" title="Acercar">＋</button><button id="mapZoomOut" title="Alejar">−</button><button id="mapReset" class="map-world-button" title="Mostrar todo el mundo">MUNDO</button><button id="mapBaseToggle" title="Alternar mapa vectorial fijo y cartografía OSM">▦</button></div>
+            <div id="strategicMap" class="strategic-map-host canvas-fallback" role="application" aria-label="Mapa estratégico mundial interactivo" data-map-mode="political" data-map-quality="auto">
+              <div id="strategicMapGL" class="strategic-map-gl" aria-hidden="true"></div>
+              <canvas id="strategicMapFallback" role="img" aria-label="Mapa mundial interactivo en modo de compatibilidad"></canvas>
+            </div>
+            <div class="map-controls" aria-label="Controles de cámara">
+              <button id="mapZoomIn" title="Acercar" aria-label="Acercar">＋</button><button id="mapZoomOut" title="Alejar" aria-label="Alejar">−</button>
+              <button id="mapTopDown" title="Vista cenital" aria-label="Vista cenital">2D</button><button id="mapTilt" title="Inclinar cámara" aria-label="Inclinar cámara">3D</button>
+              <button id="mapRotateLeft" title="Girar a la izquierda" aria-label="Girar a la izquierda">↶</button><button id="mapRotateRight" title="Girar a la derecha" aria-label="Girar a la derecha">↷</button>
+              <button id="mapCompass" class="map-compass" title="Restablecer norte" aria-label="Restablecer norte"><span>◆</span><small>N</small></button>
+              <button id="mapReset" class="map-world-button" title="Mostrar todo el mundo">MUNDO</button><button id="mapBaseToggle" title="Alternar cartografía vectorial y base sin conexión" aria-label="Alternar mapa base">▦</button>
+            </div>
+            <div class="map-readouts" aria-live="off"><span id="mapScale">1000 km</span><span id="mapCoordinates">—</span><span id="mapLodBadge">LOD 0 · Mundo</span><span id="mapFpsCounter" data-status="good" hidden>0 FPS · 0,0 ms · AUTO</span></div>
+            <div id="mapFallbackNotice" class="map-fallback-notice" role="status">Modo de compatibilidad Canvas 2D activo</div>
+            <aside id="mapLayerPanel" class="map-layer-panel" aria-label="Catálogo de 58 capas" hidden>
+              <header><div><span class="eyebrow">CAPAS CARTOGRÁFICAS</span><b>00–57 · físicas, políticas, simulación e interfaz</b></div><button id="mapLayerPanelClose" aria-label="Cerrar catálogo de capas">×</button></header>
+              <div id="mapLayerPanelContent" class="map-layer-panel-content"></div>
+            </aside>
+            <div id="mapLegend" class="map-dynamic-legend" aria-label="Leyenda de capas activas" hidden></div>
             <div id="mapTooltip" class="map-tooltip" hidden></div>
             <aside id="mapRegionList" class="map-region-list" hidden></aside>
-            <div class="map-attribution">© OpenStreetMap contributors · Límites Natural Earth (dominio público)</div>
+            <div class="map-attribution">Natural Earth · IGN/es-atlas · Mapzen Terrain · MapLibre/deck.gl/Three.js</div>
           </div>
         </article>
 
@@ -177,9 +205,12 @@
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
   <div id="modalBackdrop" class="modal-backdrop" hidden><section class="modal-card" role="dialog" aria-modal="true"><header><h2 id="modalTitle">Modal</h2><button id="closeModalBtn">×</button></header><div id="modalContent" class="modal-content"></div></section></div>
 
-  <script src="js/polyfills.js?v=5.4.1-r1"></script>
-  <script src="js/auth.js?v=5.4.1-r1"></script>
-  <script src="compat/legacy-v52.bundle.js?v=5.4.1-r1"></script>
-  <script type="module" src="core/entry.mjs?v=5.4.1-r1"></script>
+  <script src="assets/vendor/maplibre-gl/5.24.0/maplibre-gl.js?v=5.24.0"></script>
+  <script src="assets/vendor/deck.gl/9.1.14/deck.gl.min.js?v=9.1.14"></script>
+  <script src="js/polyfills.js?v=6.0.0-r4"></script>
+  <script src="js/auth.js?v=6.0.0-r4"></script>
+  <script src="compat/legacy-v52.bundle.js?v=6.0.0-r4"></script>
+  <script>if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(error=>console.warn("Modo sin conexión no disponible",error)));</script>
+  <script type="module" src="core/entry.mjs?v=6.0.0-r4"></script>
 </body>
 </html>

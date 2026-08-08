@@ -1,5 +1,26 @@
 # Changelog
 
+## Strategic Command v6.0.0
+
+- Reemplazado el mapa Canvas monolítico por un motor cartográfico modular sin separar el estado del mundo ni duplicar la simulación.
+- Añadidos los modos sincronizados **Político**, **Híbrido** y **Terreno 3D**, con una única cámara, selección y referencia geográfica; el cambio conserva centro, zoom, orientación, país, región, entidades, rutas y frentes.
+- Integrados localmente MapLibre GL JS 5.24.0, deck.gl 9.1.14 y Three.js 0.180.0, sin CDN obligatorio ni backend.
+- Añadido un adaptador intermedio inmutable entre simulación y renderers para países, regiones, ciudades, instalaciones, logística, comercio, unidades, ocupaciones, reclamaciones, guerras y etiquetas.
+- Añadido catálogo versionado de 58 capas en cuatro grupos: físicas, políticas, simulación e interfaz.
+- Añadidos cuatro niveles de detalle —mundo, país, región y operacional— con límites de entidades, clustering, actualización diferencial y carga progresiva.
+- Incorporados países Natural Earth 1:110m/1:50m, Admin-1, ciudades, ríos, lagos, carreteras, ferrocarriles, puertos y aeropuertos; España incorpora 17 comunidades autónomas y 50 provincias procedentes de `es-atlas`/IGN.
+- Corregido el tratamiento del antimeridiano en límites, centros y generación determinista de posiciones para evitar deformaciones de Rusia, Fiyi y otros territorios partidos.
+- Añadidas coordenadas persistentes o deterministas para entidades heredadas, siempre normalizadas como longitud/latitud y separadas del estado gráfico.
+- Añadido relieve Terrarium local de Mapzen para z0–z3, hillshade, inclinación, iluminación ligada al reloj simulado, luces nocturnas y modelos glTF ligeros.
+- Conectadas visualmente industrias, energía, infraestructura, nodos logísticos, rutas marítimas y terrestres, convoyes, formaciones, campañas, frentes, batallas, ocupación, reclamaciones y reconstrucción.
+- Añadidos selector de calidad, menú de capas, brújula, escala, inclinación, rotación, coordenadas, leyenda y diagnóstico de FPS/LOD.
+- Añadidos perfiles **Automático**, **Ultra**, **Alto**, **Medio** y **Bajo**, además de soporte para movimiento reducido.
+- Añadida degradación escalonada: asset detallado → geografía local simplificada → iconos/geometría procedural → renderer Canvas. Un fallo de tesela, DEM, modelo o WebGL no debe dejar el mapa en blanco.
+- Elevado el formato de guardado al esquema `60`, con `mapDataVersion`, registro idempotente de migraciones, checksum, rechazo explícito de formatos futuros y cadena `52 → 53 → 54 → 60`.
+- Movida la persistencia primaria a IndexedDB por cuenta, con copia recuperable comprimida cuando el navegador lo permite y fallback local si IndexedDB falla.
+- Añadidos inventario cartográfico reproducible con tamaño y SHA-256, avisos de licencia locales, contratos automatizados v6 y construcción de un ZIP de raíz directa para GitHub Pages.
+- Conservadas las funciones, datos y migraciones de Strategic Command v5.4.1 y versiones anteriores mediante el runtime de compatibilidad congelado.
+
 ## Strategic Command v5.4.1
 
 - Sustituida la antigua franja de ocho recursos agregados por los 21 mercados económicos diferenciados.

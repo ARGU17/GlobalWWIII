@@ -1,4 +1,147 @@
-# Validación técnica — Strategic Command v5.4.1
+# Validación técnica — Strategic Command v6.0.0
+
+## Estado de validación de v6
+
+Esta sección distingue entre contratos automatizados, comprobación visual local y despliegue público. Una revisión de sintaxis o un test sin DOM no se presenta como prueba de WebGL.
+
+Estado observado el 8 de agosto de 2026 en el árbol de trabajo antes del cierre de la entrega:
+
+| Área | Estado | Evidencia disponible |
+| --- | --- | --- |
+| Assets y GIS | **Superado** | 140 assets (31,88 MiB), tamaños y SHA-256; runtime WebGL local; Natural Earth 110m/50m/10m; 4.596 Admin-1; antimeridiano; 85 DEM; 17 CCAA; 50 provincias; glTF y avisos. |
+| Contrato de interfaz cartográfica | **Superado** | 3 modos, 58 capas, 4 LOD, 5 perfiles, estado de cámara, visibilidad y selección. |
+| Guardado v6 | **Superado** | Esquema 60, migración explícita 54→60, idempotencia, checksum, rechazo de futuro, IndexedDB y recuperación. |
+| Adaptador de datos | **Superado** | Dos lecturas idénticas conservan revisiones y referencias; 197 países, 1.016 regiones de simulación y 2.154 formaciones únicas. |
+| Geografía y entidades | **Superado** | Rusia/Canadá/Alaska, archipiélagos y antimeridiano; entidades dentro de región; rutas, frentes, ocupación y anexión. |
+| Resiliencia | **Superado** | Contratos de fallo de asset/tesela/DEM/modelo/WebGL, modo local, Canvas y degradación de perfiles. |
+| Contrato estático | **Superado** | Rutas Pages relativas, 29 fuentes del bundle heredado, 175 referencias de assets y sin dependencias cartográficas CDN. |
+| ZIP v6 | Pendiente de regeneración final | Cualquier cambio posterior vuelve obsoleto el ZIP y su SHA-256. |
+| Navegador local v6 | **Pendiente** | Aún no se afirma resultado visual, de interacción, rendimiento ni consola para v6. |
+| GitHub Pages v6 | **Pendiente** | Aún no se afirma que `main` esté desplegado ni que la URL pública sirva este commit. |
+
+Antes de publicar, el responsable de la entrega debe actualizar esta tabla con fecha, commit, runtime y resultado real. Un fallo o una prueba no ejecutada debe mantenerse visible.
+
+## Contratos automatizados v6
+
+### Assets, GIS y funcionamiento local
+
+```bash
+node tools/build-map-assets.mjs --verify-only
+node tests/v6-assets-validation.mjs
+```
+
+Comprueba:
+
+- correspondencia exacta entre cada asset y su tamaño/SHA-256;
+- versiones fijadas de MapLibre, deck.gl, Three.js y GLTFLoader;
+- importación local de módulos Three.js sin `bare imports`;
+- países Natural Earth a 110m/50m/10m, Admin-1 50m/10m, ciudades, hidrografía, tierra, océano, redes, puertos y aeropuertos;
+- geometría válida de España, Rusia, Canadá, Estados Unidos y países que cruzan el antimeridiano;
+- 17 comunidades autónomas, 50 provincias y territorios especiales separados;
+- 85 teselas Terrarium PNG de 256 px entre z0 y z3;
+- modelos glTF autocontenidos, texturas SVG y avisos de licencia.
+
+### Modos, cámara, capas, LOD y perfiles
+
+```bash
+node tests/v6-map-ui-contract-validation.mjs
+```
+
+Comprueba el ciclo Político → Híbrido → Terreno → Político, conservación de cámara y selección, transición 400–800 ms, movimiento reducido, persistencia sin colisionar con `mapMode=world|regions`, 58 capas, cuatro grupos conmutables, LOD 0–3 y perfiles Automático/Ultra/Alto/Medio/Bajo.
+
+### Adaptador cartográfico
+
+```bash
+node tests/v6-map-data-adapter-validation.mjs
+```
+
+Debe comprobar 197 países, regiones y formaciones únicas; snapshot inmutable; ausencia de mutación del estado central; preferencia por GIS real; coordenadas planas y normalizadas; ocupaciones/reclamaciones; revisiones diferenciales; antimeridiano; TopoJSON; y puntos reproducibles dentro de polígonos. Una lectura idéntica debe reutilizar dominios y no incrementar revisiones.
+
+### Interacción, geografía, entidades y resiliencia
+
+```bash
+node tests/v6-map-interaction-and-lod-validation.mjs
+node tests/v6-map-geography-and-entities-validation.mjs
+node tests/v6-map-resilience-validation.mjs
+```
+
+Comprueba transiciones de modo sin estado paralelo, persistencia de cámara/selección, Rusia, Canadá, Alaska, España y CCAA; los cuatro LOD; antimeridiano y archipiélagos; colocación persistente sin colisiones; instalaciones, unidades, rutas, barcos, frentes, batallas, anexión y ocupación; y degradación local ante fallos de recursos o WebGL.
+
+### Guardados y migraciones
+
+```bash
+node tests/v6-save-migration-validation.mjs
+```
+
+Comprueba formato `nexus-global-save`, versión `6.0.0`, esquema `60`, `mapDataVersion`, checksum, cadena `52 → 53 → 54 → 60`, migración idempotente, rechazo de esquemas posteriores, compatibilidad de campos heredados, coordenadas persistentes o deterministas e IndexedDB con copia recuperable/fallback.
+
+### Publicación estática y ZIP
+
+```bash
+node tests/v6-static-map-contract-validation.mjs
+node tools/build-v6-release.mjs
+node tests/v6-release-validation.mjs
+git diff --check
+```
+
+Comprueba rutas relativas bajo `/GlobalWWIII/`, ausencia de `file://` o base absoluta, referencias HTML/CSS existentes, bundle heredado completo, assets no vacíos, raíz directa del ZIP, ausencia de `.git/` y `dist/`, lectura completa con `unzip -t` y SHA-256 coincidente.
+
+## Prueba obligatoria en navegador real para v6
+
+Sirve la raíz por HTTP; no abras mediante `file://`:
+
+```bash
+python3 -m http.server 8000
+```
+
+Registra navegador, versión, sistema, GPU, viewport, perfil, URL y commit. Verifica como mínimo:
+
+1. Arranque sin error crítico de consola ni recursos 404.
+2. Político → Híbrido → Terreno → Político sin reiniciar campaña.
+3. Misma longitud, latitud, zoom, bearing, país y región antes/después.
+4. Selección y foco de Rusia, Canadá, Alaska y España.
+5. Antimeridiano y archipiélagos sin solapes ni líneas que crucen el mundo.
+6. Las 17 CCAA seleccionables y provincias visibles en el LOD previsto.
+7. Zoom mundo, país, región y operacional con carga progresiva.
+8. Instalaciones y unidades dentro de su región; rutas terrestres y marítimas coherentes.
+9. Barcos sobre el mar, convoyes en ruta, frentes, batallas, ocupaciones y reclamaciones.
+10. Simulación avanzada varios días sin que la selección salte al territorio inicial.
+11. Día/noche ligado a la hora simulada y sin cambiar la velocidad del reloj.
+12. Fallo provocado de proveedor raster, DEM y modelo sin mapa en blanco.
+13. WebGL no disponible o contexto perdido activa Canvas y permite seguir jugando.
+14. Recarga sin red mantiene geografía local, unidades e instalaciones; solo desactiva fuentes externas configuradas.
+15. Guardado, recarga, exportación, importación y migración por cuenta.
+16. Escritorio, tableta y móvil; teclado, foco visible, tooltips y controles táctiles.
+17. Movimiento reducido sin transiciones no esenciales.
+18. FPS, tiempo de cuadro y memoria en escenas comparables para cada perfil; anota cifras, no solo “fluido”.
+
+### Matriz mínima
+
+| Escena | Escritorio | Tableta | Móvil |
+| --- | --- | --- | --- |
+| Político mundial | Ultra/Alto | Automático/Medio | Bajo |
+| Híbrido nacional | Alto | Medio | Bajo |
+| Terreno regional | Alto/Medio | Medio/Bajo | Bajo simplificado |
+| Guerra con rutas y frentes | Alto/Medio | Medio | Bajo |
+| Offline y fallo WebGL | Fallback | Fallback | Fallback |
+
+Los objetivos declarados en configuración son presupuestos. Solo deben escribirse como alcanzados si una medición real los respalda.
+
+## Validación de GitHub Pages v6
+
+Después de integrar en `main`:
+
+1. Comprueba la ejecución `pages build and deployment` en <https://github.com/ARGU17/GlobalWWIII/actions>.
+2. Abre <https://argu17.github.io/GlobalWWIII/> con recarga forzada.
+3. Confirma que la versión visible y los query strings corresponden a v6.0.0.
+4. Repite el arranque, tres modos, selección, consola, guardado y responsive en la URL pública.
+5. Anota aquí commit desplegado, URL de la ejecución, fecha y resultado.
+
+Hasta completar estos pasos, el estado de Pages debe seguir marcado como pendiente.
+
+## Evidencia histórica conservada
+
+Las secciones siguientes corresponden a versiones anteriores. Demuestran regresiones históricas, pero no validan por sí solas el nuevo renderer v6.
 
 ## Validación v5.4.1
 
@@ -29,7 +172,7 @@ Ejecutar `node tests/v51-validation.js`. La prueba comprueba el catálogo exacto
 - Fluidez de navegador: 13 días a x32 en 4,3 segundos, con pausa inmediata e interfaz sensible.
 - El país y la región seleccionados permanecieron estables durante 95 días de avance.
 
-## Validaciones ejecutadas
+## Validaciones históricas ejecutadas antes de v6
 
 - Sintaxis de todos los archivos JavaScript mediante `node --check`.
 - Verificación de referencias CSS, JavaScript e imágenes locales desde `index.html`.
@@ -115,7 +258,7 @@ También se verificó:
 - Sala de Guerra multidominio con selector de región objetivo, doctrina, reservas y cronología de campañas.
 - Estrategia electoral con partido elegible, impulso, proyección y acciones de campaña.
 
-## Prueba funcional en navegador
+## Prueba funcional histórica en navegador (Strategic Command v2.0.0)
 
 Se sirvió el proyecto mediante HTTP local y se verificó en el navegador integrado:
 
@@ -137,7 +280,7 @@ Se sirvió el proyecto mediante HTTP local y se verificó en el navegador integr
 - Cuarenta y siete usos fotográficos renderizados, catorce archivos únicos cargados, cero imágenes rotas y cero errores de consola.
 - Inventario visible con Leopard 2E, Eurofighter Typhoon Tranche 4 y S-80 Plus clase Isaac Peral.
 
-## Comandos ejecutados
+## Comandos históricos ejecutados
 
 ```bash
 node --check js/alpha-v20.js

@@ -1,18 +1,44 @@
-# Avisos de datos y referencias
+# Avisos de datos, software y referencias
+
+Strategic Command v6.0.0 incluye dependencias WebGL y datos cartográficos locales de terceros. La tabla completa, las obligaciones de redistribución y las atribuciones visibles están en [LICENSES_MAP_V6.md](LICENSES_MAP_V6.md); procedencia, transformación, tamaño y SHA-256 de cada asset están en `data/map-v1/assets-manifest.json`.
+
+## Motor WebGL local
+
+- MapLibre GL JS 5.24.0 — BSD-3-Clause y avisos incluidos: `assets/vendor/maplibre-gl/5.24.0/LICENSE.txt`.
+- deck.gl 9.1.14 — MIT: `assets/vendor/deck.gl/9.1.14/LICENSE`.
+- Three.js, GLTFLoader y BufferGeometryUtils 0.180.0 — MIT: `assets/vendor/three/LICENSE`.
+
+Las copias se distribuyen dentro del repositorio y la versión publicada no depende de un CDN.
 
 ## Natural Earth
 
-Los límites vectoriales locales del mapa mundial se basan en Natural Earth, un conjunto de datos cartográficos de dominio público.
+Los límites, territorios, ciudades, ríos, lagos, tierra, océano, carreteras, ferrocarriles, puertos y aeropuertos locales se basan en Natural Earth, fijado al commit registrado en el manifiesto. Natural Earth declara sus datos de dominio público. Se mantiene la atribución recomendada `Made with Natural Earth`.
 
-Proyecto: https://www.naturalearthdata.com/
+Proyecto: <https://www.naturalearthdata.com/>
 
-## OpenStreetMap
+Aviso local: `assets/vendor/natural-earth/LICENSE.md`
 
-Cuando la base online está activada, el juego solicita únicamente los mosaicos visibles del servicio estándar de OpenStreetMap y muestra la atribución `© OpenStreetMap contributors` dentro del mapa.
+## Mapzen Terrain Tiles
 
-Proyecto y condiciones: https://www.openstreetmap.org/copyright
+El relieve global de baja resolución usa 85 teselas Terrarium Mapzen entre z0 y z3. El conjunto combina fuentes con obligaciones diferentes. Debe conservarse `assets/vendor/mapzen-terrain/ATTRIBUTION.md`, que enumera los créditos de ArcticDEM, Geoscience Australia, Austria, Canadá, Copernicus/EU-DEM, NOAA, INEGI, LINZ, Kartverket, Environment Agency y USGS, entre otros.
 
-La distribución no incluye mosaicos OSM, no realiza precarga masiva y no proporciona un paquete de mosaicos offline.
+Registro: <https://registry.opendata.aws/terrain-tiles/>
+
+## España: es-atlas e Instituto Geográfico Nacional
+
+Las 17 comunidades autónomas y 50 provincias españolas proceden de `es-atlas` 0.6.0, proyecto de Martín González generado a partir de cartografía del Instituto Geográfico Nacional. El paquete es MIT; las geometrías de origen están bajo CC-BY 4.0 y condiciones IGN/CNIG.
+
+Debe conservarse la atribución:
+
+> Obra derivada de BDLJE CC-BY 4.0 ign.es
+
+Repositorio: <https://github.com/martgnz/es-atlas/tree/v0.6.0>
+
+Avisos locales: `assets/vendor/es-atlas/0.6.0/README.md` y `package.json`
+
+## Proveedores cartográficos opcionales
+
+El paquete v6 no incluye mosaicos OpenStreetMap ni usa sus servidores públicos estándar como backend de producción. Puede configurarse un proveedor raster o DEM externo; quien lo configure debe aportar su atribución y respetar licencia, límites y condiciones del servicio. Si el proveedor falla, el mapa mantiene las geometrías locales.
 
 ## Fotografías militares · Wikimedia Commons
 
@@ -34,14 +60,6 @@ Las miniaturas de `assets/military/` proceden de Wikimedia Commons. Se distribuy
 - US Cyber Command: <https://commons.wikimedia.org/wiki/File:United_States_Cyber_Command_patch.jpg>
 
 Las fotografías representan familias visuales de capacidad. La imagen de una ficha no implica que el modelo exacto mostrado en el texto sea el de la fotografía.
-
-## es-atlas e Instituto Geográfico Nacional
-
-Para las comunidades autónomas españolas, el mapa intenta cargar la geometría de `es-atlas`, proyecto de Martin González generado a partir de cartografía del Instituto Geográfico Nacional de España. Deben conservarse las condiciones de atribución indicadas por el proyecto y la fuente original.
-
-Repositorio: https://github.com/martgnz/es-atlas
-
-El archivo local `assets/maps/spain-autonomous-regions.topojson` es un respaldo simplificado propio para mantener la jugabilidad cuando la fuente online no está disponible.
 
 ## Empresas y marcas
 

@@ -1,6 +1,23 @@
-# NEXUS Global — Strategic Command v5.4.1
+# NEXUS Global — Strategic Command v6.0.0
 
 Simulador geopolítico, económico, político, industrial y militar ejecutable en navegador y preparado para GitHub Pages.
+
+## Motor cartográfico v6.0.0
+
+La v6 conserva la simulación y la interfaz acumuladas hasta v5.4.1 y reemplaza el mapa monolítico por un motor geográfico desacoplado, estático y reproducible. La cámara, la selección y las coordenadas tienen una única fuente de verdad; cambiar de representación no reinicia el mapa ni altera el país o la región seleccionados. El contrato técnico completo está en [ARCHITECTURE_V60.md](ARCHITECTURE_V60.md), las fuentes cartográficas en [MAP_DATA_SOURCES.md](MAP_DATA_SOURCES.md) y las obligaciones de redistribución en [LICENSES_MAP_V6.md](LICENSES_MAP_V6.md).
+
+- **Tres representaciones sincronizadas:** Político, Híbrido y Terreno 3D comparten cámara, zoom, inclinación, orientación, selección, capas y entidades. La transición nominal dura entre 520 y 720 ms y se elimina cuando el sistema solicita movimiento reducido.
+- **Composición WebGL local:** MapLibre GL JS 5.24.0 gobierna cámara, geografía y terreno; deck.gl 9.1.14 dibuja unidades, instalaciones, rutas y frentes; Three.js 0.180.0 reserva los modelos 3D ligeros para el detalle seleccionado. Ninguna de estas bibliotecas es propietaria del estado de la simulación.
+- **58 capas lógicas:** 20 físicas, 10 políticas, 20 de simulación y 8 de interfaz. Se pueden gestionar por capa o por grupo; el estado visible queda guardado con la campaña.
+- **Cuatro LOD:** mundo, país, región y nivel operacional. El motor intercambia países 1:110m/1:50m, Admin-1, ciudades, redes e infraestructura según el zoom, sin cambiar el identificador lógico de una entidad.
+- **GIS local trazable:** Natural Earth fijado al commit `ca96624a56bd078437bca8184e78163e5039ad19`; `es-atlas` 0.6.0/IGN para 17 comunidades autónomas y 50 provincias españolas; 85 teselas DEM Terrarium Mapzen para relieve mundial entre z0 y z3.
+- **Simulación sobre el mapa:** soberanía, control, ocupación, reclamaciones, industrias, energía, logística, comercio marítimo y terrestre, unidades, campañas, batallas, frentes y selección se normalizan mediante un snapshot cartográfico inmutable. El adaptador no escribe en economía, diplomacia ni guerra.
+- **Rendimiento configurable:** perfiles Automático, Ultra, Alto, Medio y Bajo regulan resolución, terreno, sombras, agua, modelos, animaciones, partículas, vegetación, densidad urbana y distancia de dibujado. El panel puede mostrar FPS, LOD y coordenadas.
+- **Degradación funcional:** si falla un modelo se usa geometría procedural; si falta una fuente detallada se recurre a Natural Earth de menor escala; si falla WebGL se activa el renderer Canvas local conservado. El paquete cartográfico incluido no exige peticiones externas.
+- **Guardados resistentes:** esquema `60`, versión `6.0.0` y datos `natural-earth-v6`; migración explícita `52 → 53 → 54 → 60`, checksum, registro de migraciones, rechazo de esquemas futuros y copia recuperable. IndexedDB es el almacenamiento principal; el soporte local alternativo se usa cuando el navegador no ofrece IndexedDB.
+- **GitHub Pages sin backend:** todos los scripts, datos, estilos, modelos y dependencias del mapa son rutas relativas. Registro, sesiones y partidas continúan siendo locales al navegador y a la cuenta elegida.
+
+El inventario `data/map-v1/assets-manifest.json` es la referencia autoritativa del paquete cartográfico: registra cada recurso local con versión, procedencia, transformación, licencia, tamaño y SHA-256. No debe editarse a mano; se reproduce y verifica mediante `tools/build-map-assets.mjs`.
 
 ## Franja completa de mercados v5.4.1
 
@@ -200,11 +217,29 @@ index.html
 .nojekyll
 css/
 js/
+  map/                  Motor, estado, adaptador y renderers v6
 assets/
-tests/
+  maps/v6/              Natural Earth, España y DEM local
+  models/               Modelos glTF propios
+  textures/             Texturas SVG propias
+  vendor/               MapLibre, deck.gl, Three.js y avisos
+core/                   Estado, reloj, eventos, RNG y guardados
+simulation/             Sistemas de simulación desacoplados
+world/                  Repositorios geográficos y recursos
+ai/                     Planificadores por dominio
+data/map-v1/            Capas y manifiesto cartográfico
+data/v60/               Schema, propietarios y catálogos v6
+compat/                 Runtime jugable heredado congelado
+workers/                Cálculos pesados con fallback
+headless/               Simulación sin interfaz
+tests/                  Regresión histórica y contratos v6
+tools/                  Construcción reproducible de assets/ZIP
 README.md
 CHANGELOG.md
 VALIDATION.md
+ARCHITECTURE_V60.md
+MAP_DATA_SOURCES.md
+LICENSES_MAP_V6.md
 UPLOAD_TO_GITHUB.md
 ```
 
@@ -220,16 +255,18 @@ Después abre `http://localhost:8000`.
 
 ## GitHub Pages
 
-1. Descomprime `NEXUS_Global_Strategic_Command_v5.1.0_GitHub.zip`.
-2. Sube **todos los archivos y carpetas interiores** a la raíz del repositorio.
+1. Usa el contenido del repositorio o descomprime `dist/GlobalWWIII-v6.0.0.zip`.
+2. Sube **todos los archivos y carpetas interiores** a la raíz de la rama `main`; `index.html` no debe quedar dentro de una carpeta adicional.
 3. Activa `Settings → Pages → Deploy from a branch → main → / (root)`.
-4. Espera al despliegue y realiza una recarga forzada.
+4. Espera a que termine el despliegue y realiza una recarga forzada.
 
-El ZIP ya tiene `index.html` en la raíz. GitHub no descomprime ZIP automáticamente.
+El ZIP validado ya tiene `index.html` en la raíz y excluye `.git/` y `dist/`. GitHub no descomprime ZIP automáticamente. Las instrucciones detalladas y la URL esperada están en [UPLOAD_TO_GITHUB.md](UPLOAD_TO_GITHUB.md).
 
 ## Guardados
 
-Strategic Command v5.1.0 utiliza la clave base `nexus_strategic_v5_1_0_save`, añade el identificador de la cuenta activa y migra guardados desde v5.0.0, v2.0.0 y anteriores. **Reiniciar campaña** solo elimina la partida de la cuenta actual.
+Strategic Command v6.0.0 empaqueta cada campaña con formato `nexus-global-save`, checksum y esquema `60`. La cadena de migración conserva estados v5.2/v5.4 mediante los pasos explícitos `52 → 53 → 54 → 60`; aplicar de nuevo la migración no duplica su registro. Un guardado de esquema posterior a `60` se rechaza de forma explícita para impedir una degradación destructiva.
+
+Las campañas nuevas se persisten principalmente en IndexedDB (`nexus-global-v6`); la clave mantiene el identificador de la cuenta activa. Antes de migrar o sobrescribir se conserva una copia recuperable cuando el almacenamiento del navegador lo permite. La exportación JSON sigue siendo la copia portátil recomendada. **Reiniciar campaña** solo elimina la partida de la cuenta actual.
 
 ## Nota de simulación
 
