@@ -1,0 +1,16 @@
+{
+  "type":"object",
+  "required":["version","saveVersion","mapDataVersion","migrationLog","date","dayIndex","countries","regions","v54","v60"],
+  "properties":{
+    "version":{"type":"string"},
+    "saveVersion":{"type":"number"},
+    "mapDataVersion":{"type":"string"},
+    "migrationLog":{"type":"array"},
+    "date":{"type":"string"},
+    "dayIndex":{"type":"number"},
+    "countries":{"type":"array","minItems":197},
+    "regions":{"type":"array"},
+    "v54":{"type":"object","required":["schema","metrics","domains","audit"]},
+    "v60":{"type":"object","required":["schema","version","mapDataVersion","map","audit"]}
+  }
+}

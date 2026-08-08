@@ -1,0 +1,15 @@
+[
+  {"id":"economy","frequency":"daily","owner":"simulation.economy"},
+  {"id":"population","frequency":"monthly","owner":"simulation.population"},
+  {"id":"firms","frequency":"monthly","owner":"simulation.firms"},
+  {"id":"finance","frequency":"daily","owner":"simulation.finance"},
+  {"id":"energy","frequency":"daily","owner":"simulation.energy"},
+  {"id":"logistics","frequency":"daily","owner":"simulation.logistics"},
+  {"id":"politics","frequency":"weekly","owner":"simulation.politics"},
+  {"id":"diplomacy","frequency":"weekly","owner":"simulation.diplomacy"},
+  {"id":"military","frequency":"daily","owner":"simulation.military"},
+  {"id":"intelligence","frequency":"weekly","owner":"simulation.intelligence"},
+  {"id":"climate","frequency":"monthly","owner":"simulation.climate"},
+  {"id":"quarterly","frequency":"quarterly","owner":"simulation.quarterly"},
+  {"id":"annual","frequency":"annual","owner":"simulation.annual"}
+]

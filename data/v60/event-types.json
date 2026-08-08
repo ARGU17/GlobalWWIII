@@ -1,0 +1,11 @@
+{
+  "simulation.day.before": {"required":{"day":"number","date":"string"}},
+  "simulation.day.completed": {"required":{"day":"number","date":"string","systems":"array"}},
+  "simulation.domain.completed": {"required":{"domain":"string","day":"number","frequency":"string"}},
+  "state.migrated": {"required":{"from":"number","to":"number","day":"number"}},
+  "save.created": {"required":{"version":"string","day":"number"}},
+  "save.recovered": {"required":{"key":"string","mode":"string"}},
+  "map.snapshot.refreshed": {"required":{"revision":"number","domains":"array","day":"number"}},
+  "ai.plan.created": {"required":{"countryId":"string","priority":"string","day":"number"}},
+  "notification.created": {"required":{"level":"string","title":"string","message":"string"}}
+}
