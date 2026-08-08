@@ -19,6 +19,6 @@ assert(app.includes('nexus_alpha_v1_8_save'), "Falta migración del guardado v1.
 assert(ui.includes('[data-sim-action]'), "Los controles temporales no usan delegación estable");
 for (const speed of [1,2,4,16,32]) assert(html.includes(`data-speed="${speed}"`), `Falta el botón x${speed}`);
 assert(html.includes('data-sim-action="toggle"') && html.includes('data-sim-action="step"'), "Faltan acciones de iniciar/pausar o avance manual");
-assert(html.includes("Strategic Command v5.4.1"), "La portada no muestra Strategic Command v5.4.1");
+assert(html.includes("Strategic Command v6.0.0"), "La portada no muestra Strategic Command v6.0.0");
 
-console.log(JSON.stringify({ok:true,version:"5.4.1",speeds:[1,2,4,16,32],delegatedControls:true,remainingTimeAware:true},null,2));
+console.log(JSON.stringify({ok:true,version:"6.0.0",speeds:[1,2,4,16,32],delegatedControls:true,remainingTimeAware:true},null,2));
